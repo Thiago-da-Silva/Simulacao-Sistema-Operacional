@@ -38,13 +38,56 @@ namespace Sistema_Operacional
             Console.WriteLine($"Processo '{nome}' criado com ID {this.NumeroProcessos} em {novoProcesso.TempoChegada:HH:mm:ss.fff}");
         }
 
+        public float CalcularMemoriaUsada()
+        {
+            return Processos.Sum(p => p.MemoriaUtilizada);
+        }
+
+        public float CalcularMemoriaDisponivel()
+        {
+            return TotalMemoria - CalcularMemoriaUsada();
+        }
+
+        public bool VerificarMemoriaDisponivel(float memoriaRequerida)
+        {
+            return CalcularMemoriaDisponivel() >= memoriaRequerida;
+        }
+
+        public void MostrarStatusMemoria()
+        {
+            float memoriaUsada = CalcularMemoriaUsada();
+            float memoriaDisponivel = CalcularMemoriaDisponivel();
+            float percentualUso = (memoriaUsada / TotalMemoria) * 100;
+
+            Console.WriteLine("=== STATUS DA MEMÓRIA ===");
+            Console.WriteLine($"Memória Total: {TotalMemoria}MB");
+            Console.WriteLine($"Memória Usada: {memoriaUsada:F2}MB ({percentualUso:F1}%)");
+            Console.WriteLine($"Memória Disponível: {memoriaDisponivel:F2}MB");
+            Console.WriteLine();
+        }
+
         public void ListarProcessos()
         {
             Console.WriteLine("=== LISTA DE PROCESSOS ===");
+            if (Processos.Count == 0)
+            {
+                Console.WriteLine("Nenhum processo encontrado.");
+                return;
+            }
+
             foreach (var processo in Processos.OrderBy(p => p.TempoChegada))
             {
-                Console.WriteLine($"Processo ID: {processo.Id}\nNome: {processo.Nome}\nPrioridade: {processo.Prioridade}\nEstado: {processo.Estado}\nThreads: {processo.Threads.Count}\nTempo de Chegada: {processo.TempoChegada:HH:mm:ss.fff}\n");
+                Console.WriteLine($"Processo ID: {processo.Id}");
+                Console.WriteLine($"Nome: {processo.Nome}");
+                Console.WriteLine($"Prioridade: {processo.Prioridade}");
+                Console.WriteLine($"Estado: {processo.Estado}");
+                Console.WriteLine($"Threads: {processo.Threads.Count}");
+                Console.WriteLine($"Memória Utilizada: {processo.MemoriaUtilizada:F2}MB");
+                Console.WriteLine($"Tempo de Chegada: {processo.TempoChegada:HH:mm:ss.fff}");
+                Console.WriteLine();
             }
+            
+            MostrarStatusMemoria();
         }
 
         public void ListarFilaProcessos()
@@ -92,6 +135,8 @@ namespace Sistema_Operacional
                     return;
                 }
                 
+                float memoriaLiberada = processo.MemoriaUtilizada;
+                
                 processo.Estado = Enums.Estados.Finalizado;
                 this.Processos.Remove(processo);
                 this.NumeroProcessos--;
@@ -104,7 +149,7 @@ namespace Sistema_Operacional
                 {
                     this.CpuEmUso = false;
                     this.ProcessoEmExecucaoId = 0;
-                    Console.WriteLine($"Processo com ID {id} finalizado. CPU liberada.");
+                    Console.WriteLine($"Processo com ID {id} finalizado. CPU liberada. Memória liberada: {memoriaLiberada:F2}MB");
                     
                     // Automaticamente executa o próximo processo na fila
                     if (EscalonadorFCFS.QuantidadeProcessosNaFila > 0)
@@ -115,9 +160,10 @@ namespace Sistema_Operacional
                 }
                 else
                 {
-                    Console.WriteLine($"Processo com ID {id} finalizado.");
+                    Console.WriteLine($"Processo com ID {id} finalizado. Memória liberada: {memoriaLiberada:F2}MB");
                 }
 
+                MostrarStatusMemoria();
             }
             catch (Exception ex)
             {
@@ -171,7 +217,7 @@ namespace Sistema_Operacional
                     this.ProcessoEmExecucaoId = 0;
                     Console.WriteLine($"Processo com ID {id} pausado. CPU liberada.");
                     
-                    // Automaticamente executa o próximo processo na fila
+                    // Automaticamente executa o próximo processo da fila
                     if (EscalonadorFCFS.QuantidadeProcessosNaFila > 0)
                     {
                         Console.WriteLine("Executando próximo processo da fila...");
@@ -238,7 +284,7 @@ namespace Sistema_Operacional
             Console.WriteLine();
         }
 
-        public void AdicionarThreadAoProcesso(int processoId)
+        public bool AdicionarThreadAoProcesso(int processoId, float memoriaThread)
         {
             try
             {
@@ -246,14 +292,40 @@ namespace Sistema_Operacional
                 if (processo == null)
                 {
                     Console.WriteLine($"Processo com ID {processoId} não encontrado.");
-                    return;
+                    return false;
                 }
-                processo.AdicionarThread();
+
+                // Verifica se há memória suficiente
+                if (!VerificarMemoriaDisponivel(memoriaThread))
+                {
+                    float memoriaDisponivel = CalcularMemoriaDisponivel();
+                    Console.WriteLine($"ERRO: Memória insuficiente!");
+                    Console.WriteLine($"Memória solicitada: {memoriaThread}MB");
+                    Console.WriteLine($"Memória disponível: {memoriaDisponivel:F2}MB");
+                    Console.WriteLine($"Memória total do sistema: {TotalMemoria}MB");
+                    MostrarStatusMemoria();
+                    return false;
+                }
+
+                bool sucesso = processo.AdicionarThread(memoriaThread);
+                if (sucesso)
+                {
+                    Console.WriteLine($"Thread criada com sucesso!");
+                    MostrarStatusMemoria();
+                }
+                return sucesso;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Erro ao adicionar thread ao processo: {ex.Message}");
+                return false;
             }
+        }
+
+        public void AdicionarThreadAoProcesso(int processoId)
+        {
+            // Método mantido para compatibilidade - usa valor padrão
+            AdicionarThreadAoProcesso(processoId, 1.0f);
         }
 
         public void ListarThreadsDoProcesso(int processoId)

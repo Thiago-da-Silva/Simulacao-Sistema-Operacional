@@ -15,6 +15,7 @@ namespace Sistema_Operacional
         public List<Thread> Threads { get; set; } = new List<Thread>();
         public Estados Estado { get; set; } = Estados.Criado;
         public DateTime TempoChegada { get; set; }
+        public float MemoriaUtilizada { get; set; } = 0;
 
         public Processo(string nome, int id, int prioridade)
         {
@@ -24,19 +25,40 @@ namespace Sistema_Operacional
             TempoChegada = DateTime.Now;
         }
 
-        public void AdicionarThread()
+        public bool AdicionarThread(float memoriaThread)
         {
-            int randomMemoria = new Random().Next(1, 3);
-            this.Threads.Add(new Thread(randomMemoria, this.Threads.Count + 1)); // Adiciona um randomizador para o valor da memoria
-            Console.WriteLine($"Thread adicionada ao processo {this.Nome} (ID: {this.Id}). Total de threads: {this.Threads.Count}, Memoria Utilizada: {randomMemoria}");
+            try
+            {
+                var novaThread = new Thread(memoriaThread, this.Threads.Count + 1);
+                this.Threads.Add(novaThread);
+                this.MemoriaUtilizada += memoriaThread;
+                
+                Console.WriteLine($"Thread adicionada ao processo {this.Nome} (ID: {this.Id}). Total de threads: {this.Threads.Count}, Memoria da Thread: {memoriaThread}MB");
+                Console.WriteLine($"Memoria total do processo: {this.MemoriaUtilizada}MB");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erro ao adicionar thread: {ex.Message}");
+                return false;
+            }
         }
 
         public void ListarThreads()
         {
+            if (Threads.Count == 0)
+            {
+                Console.WriteLine("Nenhuma thread encontrada.");
+                return;
+            }
+
+            Console.WriteLine($"Memoria total do processo: {MemoriaUtilizada}MB");
+            Console.WriteLine("Threads:");
             foreach (var thread in Threads)
             {
-                Console.WriteLine($"Thread ID: {thread.Id}\nMemoria Utilizada: {thread.MemoriaUtilizada}\nEstado: {thread.Estado}\n");
+                Console.WriteLine($"Thread ID: {thread.Id} | Memoria: {thread.MemoriaUtilizada}MB | Estado: {thread.Estado}");
             }
+            Console.WriteLine();
         }
 
         public void FinalizarThread(int id)
@@ -49,14 +71,25 @@ namespace Sistema_Operacional
                     Console.WriteLine($"Thread com ID {id} não encontrada no processo {this.Nome} (ID: {this.Id}).");
                     return;
                 }
+                
+                // Remove a memória da thread do total do processo
+                this.MemoriaUtilizada -= thread.MemoriaUtilizada;
+                
                 thread.Estado = Enums.Estados.Finalizado;
                 this.Threads.Remove(thread);
-                Console.WriteLine($"Thread com ID {id} finalizada no processo {this.Nome} (ID: {this.Id}). Total de threads restantes: {this.Threads.Count}");
+                
+                Console.WriteLine($"Thread com ID {id} finalizada no processo {this.Nome} (ID: {this.Id}). Memoria liberada: {thread.MemoriaUtilizada}MB");
+                Console.WriteLine($"Total de threads restantes: {this.Threads.Count} | Memoria total do processo: {this.MemoriaUtilizada}MB");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Erro ao finalizar a thread: {ex.Message}");
             }
+        }
+
+        public float CalcularMemoriaTotal()
+        {
+            return Threads.Sum(t => t.MemoriaUtilizada);
         }
 
         //public void PausarThread(int id)
