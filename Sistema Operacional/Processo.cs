@@ -14,12 +14,14 @@ namespace Sistema_Operacional
         public int Prioridade {  get; set; }
         public List<Thread> Threads { get; set; } = new List<Thread>();
         public Estados Estado { get; set; } = Estados.Criado;
+        public DateTime TempoChegada { get; set; }
 
         public Processo(string nome, int id, int prioridade)
         {
             Nome = nome;
             Id = id;
             Prioridade = prioridade;
+            TempoChegada = DateTime.Now;
         }
 
         public void AdicionarThread()
@@ -57,47 +59,47 @@ namespace Sistema_Operacional
             }
         }
 
-        public void PausarThread(int id)
-        {
-            try
-            {
-                Thread thread = this.Threads.FirstOrDefault(t => t.Id == id);
-                if (thread == null)
-                {
-                    Console.WriteLine($"Thread com ID {id} não encontrada no processo {this.Nome} (ID: {this.Id}).");
-                    return;
-                }
-                thread.Estado = Enums.Estados.Bloqueado;
-                Console.WriteLine($"Thread com ID {id} pausada no processo {this.Nome} (ID: {this.Id}).");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Erro ao pausar a thread: {ex.Message}");
-            }
-        }
+        //public void PausarThread(int id)
+        //{
+        //    try
+        //    {
+        //        Thread thread = this.Threads.FirstOrDefault(t => t.Id == id);
+        //        if (thread == null)
+        //        {
+        //            Console.WriteLine($"Thread com ID {id} não encontrada no processo {this.Nome} (ID: {this.Id}).");
+        //            return;
+        //        }
+        //        thread.Estado = Enums.Estados.Bloqueado;
+        //        Console.WriteLine($"Thread com ID {id} pausada no processo {this.Nome} (ID: {this.Id}).");
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine($"Erro ao pausar a thread: {ex.Message}");
+        //    }
+        //}
 
-        public void RetomarThread(int id)
-        {
-            try
-            {
-                Thread thread = this.Threads.FirstOrDefault(t => t.Id == id);
-                if (thread == null)
-                {
-                    Console.WriteLine($"Thread com ID {id} não encontrada no processo {this.Nome} (ID: {this.Id}).");
-                    return;
-                }
-                if (thread.Estado != Enums.Estados.Bloqueado)
-                {
-                    Console.WriteLine($"Thread com ID {id} não está pausada no processo {this.Nome} (ID: {this.Id}).");
-                    return;
-                }
-                thread.Estado = Enums.Estados.Executando;
-                Console.WriteLine($"Thread com ID {id} retomada no processo {this.Nome} (ID: {this.Id}).");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Erro ao retomar a thread: {ex.Message}");
-            }
-        }
+        //public void RetomarThread(int id)
+        //{
+        //    try
+        //    {
+        //        Thread thread = this.Threads.FirstOrDefault(t => t.Id == id);
+        //        if (thread == null)
+        //        {
+        //            Console.WriteLine($"Thread com ID {id} não encontrada no processo {this.Nome} (ID: {this.Id}).");
+        //            return;
+        //        }
+        //        if (thread.Estado != Enums.Estados.Bloqueado)
+        //        {
+        //            Console.WriteLine($"Thread com ID {id} não está pausada no processo {this.Nome} (ID: {this.Id}).");
+        //            return;
+        //        }
+        //        thread.Estado = Enums.Estados.Executando;
+        //        Console.WriteLine($"Thread com ID {id} retomada no processo {this.Nome} (ID: {this.Id}).");
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine($"Erro ao retomar a thread: {ex.Message}");
+        //    }
+        //}
     }
 }

@@ -31,5 +31,18 @@ namespace Sistema_Operacional
                 Console.WriteLine($"Thread com ID {this.Id} não está em um estado que permite pausa.");
             }
         }
+
+        public void RetomarThread()
+        {
+            if (this.Estado == Estados.Bloqueado)
+            {
+                this.Estado = Estados.Pronto;
+                Console.WriteLine($"Thread com ID {this.Id} retomada.");
+            }
+            else
+            {
+                Console.WriteLine($"Thread com ID {this.Id} não está em um estado que permite retomada.");
+            }
+        }
     }
 }
