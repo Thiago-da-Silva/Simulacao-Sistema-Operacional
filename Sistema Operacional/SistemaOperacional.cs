@@ -237,5 +237,146 @@ namespace Sistema_Operacional
             Console.WriteLine($"Processos na fila FCFS: {EscalonadorFCFS.QuantidadeProcessosNaFila}");
             Console.WriteLine();
         }
+
+        public void AdicionarThreadAoProcesso(int processoId)
+        {
+            try
+            {
+                Processo processo = this.Processos.FirstOrDefault(p => p.Id == processoId);
+                if (processo == null)
+                {
+                    Console.WriteLine($"Processo com ID {processoId} não encontrado.");
+                    return;
+                }
+                processo.AdicionarThread();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erro ao adicionar thread ao processo: {ex.Message}");
+            }
+        }
+
+        public void ListarThreadsDoProcesso(int processoId)
+        {
+            try
+            {
+                Processo processo = this.Processos.FirstOrDefault(p => p.Id == processoId);
+                if (processo == null)
+                {
+                    Console.WriteLine($"Processo com ID {processoId} não encontrado.");
+                    return;
+                }
+                
+                if (processo.Threads.Count == 0)
+                {
+                    Console.WriteLine($"Processo '{processo.Nome}' (ID: {processo.Id}) não possui threads.");
+                    return;
+                }
+                
+                Console.WriteLine($"=== THREADS DO PROCESSO '{processo.Nome}' (ID: {processo.Id}) ===");
+                processo.ListarThreads();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erro ao listar threads do processo: {ex.Message}");
+            }
+        }
+
+        public void FinalizarThreadDoProcesso(int processoId, int threadId)
+        {
+            try
+            {
+                Processo processo = this.Processos.FirstOrDefault(p => p.Id == processoId);
+                if (processo == null)
+                {
+                    Console.WriteLine($"Processo com ID {processoId} não encontrado.");
+                    return;
+                }
+                processo.FinalizarThread(threadId);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erro ao finalizar thread do processo: {ex.Message}");
+            }
+        }
+
+        public void PausarThreadDoProcesso(int processoId, int threadId)
+        {
+            try
+            {
+                Processo processo = this.Processos.FirstOrDefault(p => p.Id == processoId);
+                if (processo == null)
+                {
+                    Console.WriteLine($"Processo com ID {processoId} não encontrado.");
+                    return;
+                }
+                
+                var thread = processo.Threads.FirstOrDefault(t => t.Id == threadId);
+                if (thread == null)
+                {
+                    Console.WriteLine($"Thread com ID {threadId} não encontrada no processo {processo.Nome} (ID: {processo.Id}).");
+                    return;
+                }
+                
+                thread.PausarThread();
+                Console.WriteLine($"Thread com ID {threadId} pausada no processo '{processo.Nome}' (ID: {processo.Id}).");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erro ao pausar thread do processo: {ex.Message}");
+            }
+        }
+
+        public void RetomarThreadDoProcesso(int processoId, int threadId)
+        {
+            try
+            {
+                Processo processo = this.Processos.FirstOrDefault(p => p.Id == processoId);
+                if (processo == null)
+                {
+                    Console.WriteLine($"Processo com ID {processoId} não encontrado.");
+                    return;
+                }
+                
+                var thread = processo.Threads.FirstOrDefault(t => t.Id == threadId);
+                if (thread == null)
+                {
+                    Console.WriteLine($"Thread com ID {threadId} não encontrada no processo {processo.Nome} (ID: {processo.Id}).");
+                    return;
+                }
+                
+                thread.RetomarThread();
+                Console.WriteLine($"Thread com ID {threadId} retomada no processo '{processo.Nome}' (ID: {processo.Id}).");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erro ao retomar thread do processo: {ex.Message}");
+            }
+        }
+
+        public Processo ObterProcessoPorId(int id)
+        {
+            return this.Processos.FirstOrDefault(p => p.Id == id);
+        }
+
+        public int GetProcessoEmExecucaoId()
+        {
+            return ProcessoEmExecucaoId;
+        }
+
+        public bool IsCpuEmUso()
+        {
+            return CpuEmUso;
+        }
+
+        public int GetTotalMemoria()
+        {
+            return TotalMemoria;
+        }
+
+        public int GetNumeroProcessos()
+        {
+            return NumeroProcessos;
+        }
     }
 }
