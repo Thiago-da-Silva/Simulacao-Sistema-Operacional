@@ -1,10 +1,33 @@
 ﻿using Sistema_Operacional;
+using Sistema_Operacional.Interface;
 
 public class Program
 {
     static void Main(string[] args)
     {
-        SistemaOperacional sistema = new SistemaOperacional(1024); // 1024MB de memória
+        Console.WriteLine("Escolha o algoritmo de escalonamento:");
+        Console.WriteLine("1 - FCFS (First Come, First Served)");
+        Console.WriteLine("2 - Prioridades (Não Preemptivo)");
+        Console.Write("Opção: ");
+        string escolha = Console.ReadLine();
+
+        IEscalonador escalonador;
+        string nomeEscalonador;
+
+        if (escolha == "2")
+        {
+            escalonador = new EscalonadorPrioridades();
+            nomeEscalonador = "Prioridades (Não Preemptivo)";
+        }
+        else
+        {
+            escalonador = new EscalonadorFCFS();
+            nomeEscalonador = "FCFS (First Come, First Served)";
+        }
+
+        Console.Clear();
+
+        SistemaOperacional sistema = new SistemaOperacional(1024, escalonador); // 1024MB de memória
         Console.WriteLine("Sistema Operacional Iniciado com Escalonador FCFS (First Come First Served).");
         Console.WriteLine("=========================================================================");
         Console.WriteLine($"Memória Total: {sistema.GetTotalMemoria()}MB");

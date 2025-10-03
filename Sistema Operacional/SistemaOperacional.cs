@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Sistema_Operacional.Interface;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -10,32 +11,32 @@ namespace Sistema_Operacional
     public class SistemaOperacional
     {
         private int TotalMemoria { get; set; }
-        private int NumeroProcessos { get; set; }
+        private int NumeroProcessos { get; set; } = 0;
         private bool CpuEmUso { get; set; } = false;
         private DateTime DataInicio { get; set; } = DateTime.Now;
         private DateTime? DataFinal { get; set; } = null;
         private int ProcessoEmExecucaoId { get; set; } = 0;
-        private Escalonador EscalonadorFCFS { get; set; } = new Escalonador();
+        private IEscalonador Escalonador { get; set; }
 
         private List<Processo> Processos = new List<Processo>();
 
-        public SistemaOperacional(int totalMemoria)
+        public SistemaOperacional(int totalMemoria, IEscalonador escalonadorInicial)
         {
             TotalMemoria = totalMemoria;
             NumeroProcessos = 0;
             CpuEmUso = false;
+            Escalonador = escalonadorInicial;
         }
 
-        public void CriarProcesso(string nome)
+        public void CriarProcesso(string nome, int prioridade = 5)
         {
-            NumeroProcessos++;
-            var novoProcesso = new Processo(nome, this.NumeroProcessos, 1);
+            int novoId = (Processos.Any() ? Processos.Max(p => p.Id) : 0) + 1;
+            var novoProcesso = new Processo(nome, novoId, prioridade);
             this.Processos.Add(novoProcesso);
-            
-            // Adiciona ao escalonador FCFS
-            EscalonadorFCFS.AdicionarProcesso(novoProcesso);
-            
-            Console.WriteLine($"Processo '{nome}' criado com ID {this.NumeroProcessos} em {novoProcesso.TempoChegada:HH:mm:ss.fff}");
+
+            Escalonador.AdicionarProcesso(novoProcesso);
+
+            Console.WriteLine($"Processo '{nome}' (Prioridade: {prioridade}) criado com ID {novoId} em {novoProcesso.TempoChegada:HH:mm:ss.fff}");
         }
 
         public float CalcularMemoriaUsada()
@@ -92,7 +93,7 @@ namespace Sistema_Operacional
 
         public void ListarFilaProcessos()
         {
-            EscalonadorFCFS.ExibirInformacoesFila();
+            Escalonador.ExibirInformacoesFila();
         }
 
         public void ExecutarProximoProcesso()
@@ -105,7 +106,7 @@ namespace Sistema_Operacional
                     return;
                 }
 
-                var processo = EscalonadorFCFS.ObterProximoProcesso();
+                var processo = Escalonador.ObterProximoProcesso();
                 if (processo == null)
                 {
                     Console.WriteLine("Não há processos na fila para executar.");
@@ -115,8 +116,8 @@ namespace Sistema_Operacional
                 processo.Estado = Enums.Estados.Executando;
                 CpuEmUso = true;
                 ProcessoEmExecucaoId = processo.Id;
-                
-                Console.WriteLine($"Executando processo '{processo.Nome}' (ID: {processo.Id}) - Chegada: {processo.TempoChegada:HH:mm:ss.fff}");
+
+                Console.WriteLine($"Executando processo '{processo.Nome}' (ID: {processo.Id})");
             }
             catch (Exception ex)
             {
@@ -134,25 +135,21 @@ namespace Sistema_Operacional
                     Console.WriteLine($"Processo com ID {id} não encontrado.");
                     return;
                 }
-                
+
                 float memoriaLiberada = processo.MemoriaUtilizada;
-                
+
                 processo.Estado = Enums.Estados.Finalizado;
                 this.Processos.Remove(processo);
-                this.NumeroProcessos--;
-                
-                // Remove da fila se ainda estiver lá
-                EscalonadorFCFS.RemoverProcessoDaFila(id);
-                
-                // Se este processo estava executando, libera a CPU
+
+                Escalonador.RemoverProcessoDaFila(id);
+
                 if (ProcessoEmExecucaoId == id)
                 {
                     this.CpuEmUso = false;
                     this.ProcessoEmExecucaoId = 0;
                     Console.WriteLine($"Processo com ID {id} finalizado. CPU liberada. Memória liberada: {memoriaLiberada:F2}MB");
-                    
-                    // Automaticamente executa o próximo processo na fila
-                    if (EscalonadorFCFS.QuantidadeProcessosNaFila > 0)
+
+                    if (Escalonador.QuantidadeProcessosNaFila > 0)
                     {
                         Console.WriteLine("Executando próximo processo da fila...");
                         ExecutarProximoProcesso();
@@ -209,16 +206,15 @@ namespace Sistema_Operacional
                     Console.WriteLine($"Processo com ID {id} não encontrado.");
                     return;
                 }
-                
+
                 if (ProcessoEmExecucaoId == id)
                 {
                     processo.Estado = Enums.Estados.Bloqueado;
                     this.CpuEmUso = false;
                     this.ProcessoEmExecucaoId = 0;
                     Console.WriteLine($"Processo com ID {id} pausado. CPU liberada.");
-                    
-                    // Automaticamente executa o próximo processo da fila
-                    if (EscalonadorFCFS.QuantidadeProcessosNaFila > 0)
+
+                    if (Escalonador.QuantidadeProcessosNaFila > 0)
                     {
                         Console.WriteLine("Executando próximo processo da fila...");
                         ExecutarProximoProcesso();
@@ -227,8 +223,7 @@ namespace Sistema_Operacional
                 else
                 {
                     processo.Estado = Enums.Estados.Bloqueado;
-                    // Remove da fila se estiver lá
-                    EscalonadorFCFS.RemoverProcessoDaFila(id);
+                    Escalonador.RemoverProcessoDaFila(id);
                     Console.WriteLine($"Processo com ID {id} pausado.");
                 }
             }
@@ -255,9 +250,8 @@ namespace Sistema_Operacional
                     return;
                 }
 
-                // Adiciona novamente ao escalonador
-                EscalonadorFCFS.AdicionarProcesso(processo);
-                Console.WriteLine($"Processo com ID {id} adicionado novamente à fila de prontos (final da fila FCFS).");
+                Escalonador.AdicionarProcesso(processo);
+                Console.WriteLine($"Processo com ID {id} adicionado novamente à fila de prontos.");
             }
             catch (Exception ex)
             {
@@ -280,7 +274,7 @@ namespace Sistema_Operacional
             {
                 Console.WriteLine("CPU LIVRE");
             }
-            Console.WriteLine($"Processos na fila FCFS: {EscalonadorFCFS.QuantidadeProcessosNaFila}");
+            Console.WriteLine($"Processos na fila: {Escalonador.QuantidadeProcessosNaFila}");
             Console.WriteLine();
         }
 

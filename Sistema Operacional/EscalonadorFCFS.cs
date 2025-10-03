@@ -1,10 +1,11 @@
+using Sistema_Operacional.Interface;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Sistema_Operacional
 {
-    public class Escalonador
+    public class EscalonadorFCFS : IEscalonador
     {
         private Queue<Processo> FilaFCFS { get; set; } = new Queue<Processo>();
         
