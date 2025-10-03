@@ -28,19 +28,19 @@ public class Program
         Console.Clear();
 
         SistemaOperacional sistema = new SistemaOperacional(1024, escalonador); // 1024MB de memória
-        Console.WriteLine("Sistema Operacional Iniciado com Escalonador FCFS (First Come First Served).");
+        Console.WriteLine($"Sistema Operacional Iniciado com Escalonador: {nomeEscalonador}.");
         Console.WriteLine("=========================================================================");
         Console.WriteLine($"Memória Total: {sistema.GetTotalMemoria()}MB");
         Console.WriteLine($"Sistema iniciado em: {DateTime.Now:dd/MM/yyyy HH:mm:ss}");
         Console.WriteLine();
 
         bool continuar = true;
-        
+
         while (continuar)
         {
             MostrarMenu(sistema);
             string opcao = Console.ReadLine();
-            
+
             switch (opcao)
             {
                 case "1":
@@ -103,7 +103,7 @@ public class Program
                     Console.WriteLine("Opção inválida! Tente novamente.");
                     break;
             }
-            
+
             if (continuar)
             {
                 Console.WriteLine("\nPressione qualquer tecla para continuar...");
@@ -143,13 +143,13 @@ public class Program
         Console.WriteLine("║ 99 - Limpar Tela                             ║");
         Console.WriteLine("║ 0  - Sair                                    ║");
         Console.WriteLine("╚══════════════════════════════════════════════╝");
-        
+
         // Mostra status resumido
         string statusCpu = sistema.IsCpuEmUso() ? "EM USO" : "LIVRE";
         float memoriaUsada = sistema.CalcularMemoriaUsada();
         float memoriaTotal = sistema.GetTotalMemoria();
         float percentualMemoria = (memoriaUsada / memoriaTotal) * 100;
-        
+
         Console.WriteLine($"Status: CPU {statusCpu} | Processos: {sistema.GetNumeroProcessos()} | Memória: {memoriaUsada:F1}/{memoriaTotal}MB ({percentualMemoria:F1}%)");
         Console.WriteLine();
     }
@@ -158,14 +158,22 @@ public class Program
     {
         Console.Write("Digite o nome do processo: ");
         string nome = Console.ReadLine();
-        
+
         if (string.IsNullOrWhiteSpace(nome))
         {
             Console.WriteLine("Nome inválido!");
             return;
         }
-        
-        sistema.CriarProcesso(nome);
+
+        Console.Write("Digite a prioridade do processo (ex: 1 = alta, 5 = baixa): ");
+        if (!int.TryParse(Console.ReadLine(), out int prioridade) || prioridade <= 0)
+        {
+            Console.WriteLine("Prioridade inválida! Usando prioridade padrão (5).");
+            prioridade = 5;
+        }
+
+        sistema.CriarProcesso(nome, prioridade);
+
     }
 
     static void ExecutarProximoProcesso(SistemaOperacional sistema)
@@ -216,13 +224,13 @@ public class Program
     {
         Console.WriteLine("ADICIONAR THREAD");
         Console.WriteLine("==================");
-        
+
         // Mostra status da memória
         sistema.MostrarStatusMemoria();
-        
+
         // Lista processos disponíveis
         sistema.ListarProcessos();
-        
+
         Console.Write("Digite o ID do processo para adicionar thread: ");
         if (!int.TryParse(Console.ReadLine(), out int processoId))
         {
@@ -242,7 +250,7 @@ public class Program
         Console.WriteLine($"Memória atual do processo: {processo.MemoriaUtilizada:F2}MB");
         Console.WriteLine($"Memória disponível no sistema: {sistema.CalcularMemoriaDisponivel():F2}MB");
         Console.WriteLine();
-        
+
         Console.Write("Digite a quantidade de memória para a thread (MB): ");
         if (!float.TryParse(Console.ReadLine(), out float memoriaThread) || memoriaThread <= 0)
         {
@@ -252,7 +260,7 @@ public class Program
 
         // Tenta adicionar a thread
         bool sucesso = sistema.AdicionarThreadAoProcesso(processoId, memoriaThread);
-        
+
         if (sucesso)
         {
             Console.WriteLine("Thread adicionada com sucesso!");
@@ -344,20 +352,20 @@ public class Program
         Console.WriteLine("╔══════════════════════════════════════════════╗");
         Console.WriteLine("║           INFORMAÇÕES DO SISTEMA             ║");
         Console.WriteLine("╠══════════════════════════════════════════════╣");
-        
+
         float memoriaUsada = sistema.CalcularMemoriaUsada();
         float memoriaTotal = sistema.GetTotalMemoria();
         float memoriaDisponivel = sistema.CalcularMemoriaDisponivel();
         float percentualUso = (memoriaUsada / memoriaTotal) * 100;
-        
+
         Console.WriteLine($"║ Memória Total: {memoriaTotal}MB".PadRight(47) + "║");
         Console.WriteLine($"║ Memória Usada: {memoriaUsada:F2}MB ({percentualUso:F1}%)".PadRight(55) + "║");
         Console.WriteLine($"║ Memória Disponível: {memoriaDisponivel:F2}MB".PadRight(55) + "║");
         Console.WriteLine($"║ Processos Ativos: {sistema.GetNumeroProcessos()}".PadRight(47) + "║");
-        
+
         string statusCpu = sistema.IsCpuEmUso() ? "EM USO" : "LIVRE";
         Console.WriteLine($"║ Status da CPU: {statusCpu}".PadRight(55) + "║");
-        
+
         if (sistema.IsCpuEmUso())
         {
             int processoAtualId = sistema.GetProcessoEmExecucaoId();
@@ -369,7 +377,7 @@ public class Program
                 Console.WriteLine($"║ Threads: {processoAtual.Threads.Count}".PadRight(47) + "║");
             }
         }
-        
+
         Console.WriteLine($"║ Sistema iniciado: {DateTime.Now:dd/MM/yyyy HH:mm:ss}".PadRight(47) + "║");
         Console.WriteLine("║                                              ║");
         Console.WriteLine("║ Algoritmo de Escalonamento: FCFS            ║");
@@ -404,20 +412,20 @@ public class Program
 
         Console.WriteLine("5. Executando primeiro processo...");
         sistema.ExecutarProximoProcesso();
-        
+
         Console.WriteLine("\n6. Adicionando threads ao processo em execução...");
         int processoAtualId = sistema.GetProcessoEmExecucaoId();
         if (processoAtualId > 0)
         {
             Console.WriteLine("Adicionando thread com 50MB de memória...");
             sistema.AdicionarThreadAoProcesso(processoAtualId, 50.0f);
-            
+
             Console.WriteLine("Adicionando thread com 75MB de memória...");
             sistema.AdicionarThreadAoProcesso(processoAtualId, 75.0f);
-            
+
             Console.WriteLine("Tentando adicionar thread com memória excessiva (2000MB)...");
             sistema.AdicionarThreadAoProcesso(processoAtualId, 2000.0f);
-            
+
             sistema.ListarThreadsDoProcesso(processoAtualId);
         }
 
