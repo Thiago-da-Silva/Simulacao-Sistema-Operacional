@@ -26,6 +26,8 @@ namespace Sistema_Operacional
             Id = id;
             Prioridade = prioridade;
             TempoChegada = DateTime.Now;
+            // Simula um "burst time" aleatório para o processo.
+            TempoDeExecucaoTotal = new Random().Next(500, 2001);
         }
 
         public bool AdicionarThread(float memoriaThread)
