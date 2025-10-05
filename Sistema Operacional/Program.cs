@@ -8,21 +8,33 @@ public class Program
         Console.WriteLine("Escolha o algoritmo de escalonamento:");
         Console.WriteLine("1 - FCFS (First Come, First Served)");
         Console.WriteLine("2 - Prioridades (Não Preemptivo)");
+        Console.WriteLine("3 - Round Robin");
         Console.Write("Opção: ");
         string escolha = Console.ReadLine();
 
         IEscalonador escalonador;
         string nomeEscalonador;
 
-        if (escolha == "2")
+        switch (escolha)
         {
-            escalonador = new EscalonadorPrioridades();
-            nomeEscalonador = "Prioridades (Não Preemptivo)";
-        }
-        else
-        {
-            escalonador = new EscalonadorFCFS();
-            nomeEscalonador = "FCFS (First Come, First Served)";
+            case "2":
+                escalonador = new EscalonadorPrioridades();
+                nomeEscalonador = "Prioridades (Não Preemptivo)";
+                break;
+            case "3":
+                Console.Write("Digite o valor do Quantum (em ms): ");
+                if (!int.TryParse(Console.ReadLine(), out int quantum) || quantum <= 0)
+                {
+                    Console.WriteLine("Valor inválido. Usando quantum padrão de 100ms.");
+                    quantum = 100;
+                }
+                escalonador = new EscalonadorRoundRobin(quantum);
+                nomeEscalonador = $"Round Robin (Quantum: {quantum}ms)";
+                break;
+            default:
+                escalonador = new EscalonadorFCFS();
+                nomeEscalonador = "FCFS (First Come, First Served)";
+                break;
         }
 
         Console.Clear();
@@ -134,7 +146,7 @@ public class Program
         Console.WriteLine("║                                              ║");
         Console.WriteLine("║ INFORMAÇÕES DO SISTEMA                       ║");
         Console.WriteLine("║ 11 - Listar Todos os Processos               ║");
-        Console.WriteLine("║ 12 - Mostrar Fila FCFS                       ║");
+        Console.WriteLine("║ 12 - Mostrar Fila de Prontos                 ║");
         Console.WriteLine("║ 13 - Mostrar Status da CPU                   ║");
         Console.WriteLine("║ 14 - Mostrar Status da Memória               ║");
         Console.WriteLine("║ 15 - Informações do Sistema                  ║");

@@ -16,6 +16,9 @@ namespace Sistema_Operacional
         public Estados Estado { get; set; } = Estados.Criado;
         public DateTime TempoChegada { get; set; }
         public float MemoriaUtilizada { get; set; } = 0;
+        public int TempoDeExecucaoTotal { get; private set; } // Em unidade de tempo (ex: ms)
+        public int TempoExecutado { get; set; } = 0;
+        public bool Terminou => TempoExecutado >= TempoDeExecucaoTotal;
 
         public Processo(string nome, int id, int prioridade)
         {

@@ -76,18 +76,15 @@ namespace Sistema_Operacional
                 return;
             }
 
-            foreach (var processo in Processos.OrderBy(p => p.TempoChegada))
+            foreach (var processo in Processos.OrderBy(p => p.Id))
             {
-                Console.WriteLine($"Processo ID: {processo.Id}");
-                Console.WriteLine($"Nome: {processo.Nome}");
-                Console.WriteLine($"Prioridade: {processo.Prioridade}");
-                Console.WriteLine($"Estado: {processo.Estado}");
-                Console.WriteLine($"Threads: {processo.Threads.Count}");
-                Console.WriteLine($"Memória Utilizada: {processo.MemoriaUtilizada:F2}MB");
-                Console.WriteLine($"Tempo de Chegada: {processo.TempoChegada:HH:mm:ss.fff}");
+                Console.WriteLine($"ID: {processo.Id} | Nome: {processo.Nome} | Estado: {processo.Estado}");
+                Console.WriteLine($"  Memória: {processo.MemoriaUtilizada:F2}MB | Prioridade: {processo.Prioridade}");
+                Console.WriteLine($"  Tempo Executado: {processo.TempoExecutado} / {processo.TempoDeExecucaoTotal}ms");
+
                 Console.WriteLine();
             }
-            
+
             MostrarStatusMemoria();
         }
 
@@ -98,32 +95,49 @@ namespace Sistema_Operacional
 
         public void ExecutarProximoProcesso()
         {
-            try
+            if (CpuEmUso)
             {
-                if (CpuEmUso)
-                {
-                    Console.WriteLine("CPU está em uso. Finalize o processo atual primeiro.");
-                    return;
-                }
-
-                var processo = Escalonador.ObterProximoProcesso();
-                if (processo == null)
-                {
-                    Console.WriteLine("Não há processos na fila para executar.");
-                    return;
-                }
-
-                processo.Estado = Enums.Estados.Executando;
-                CpuEmUso = true;
-                ProcessoEmExecucaoId = processo.Id;
-
-                Console.WriteLine($"Executando processo '{processo.Nome}' (ID: {processo.Id})");
+                Console.WriteLine("CPU já está executando um slice. Aguarde a finalização.");
+                return;
             }
-            catch (Exception ex)
+
+            var processo = Escalonador.ObterProximoProcesso();
+            if (processo == null)
             {
-                Console.WriteLine($"Erro ao executar o próximo processo: {ex.Message}");
+                Console.WriteLine("Não há processos na fila para executar.");
+                return;
             }
+
+            CpuEmUso = true;
+            ProcessoEmExecucaoId = processo.Id;
+            processo.Estado = Enums.Estados.Executando;
+
+            int quantum = (Escalonador is EscalonadorRoundRobin rr) ? rr.Quantum : processo.TempoDeExecucaoTotal;
+            int tempoParaExecutar = Math.Min(quantum, processo.TempoDeExecucaoTotal - processo.TempoExecutado);
+
+            Console.WriteLine($"Executando quantumn do processo '{processo.Nome}' (ID: {processo.Id}) por {tempoParaExecutar}ms.");
+
+            // Simula a passagem do tempo
+            System.Threading.Thread.Sleep(tempoParaExecutar);
+            processo.TempoExecutado += tempoParaExecutar;
+
+            Console.WriteLine($"Quantumn concluído. Processo '{processo.Nome}' executou por {processo.TempoExecutado}/{processo.TempoDeExecucaoTotal}ms no total.");
+
+            if (processo.Terminou)
+            {
+                Console.WriteLine($"Processo '{processo.Nome}' (ID: {processo.Id}) terminou a execução.");
+                FinalizarProcesso(processo.Id); // Finaliza o processo
+            }
+            else
+            {
+                Console.WriteLine($"Processo '{processo.Nome}' (ID: {processo.Id}) não terminou. Voltando para a fila.");
+                Escalonador.AdicionarProcesso(processo); // Devolve para a fila
+            }
+
+            CpuEmUso = false;
+            ProcessoEmExecucaoId = 0;
         }
+
 
         public void FinalizarProcesso(int id)
         {
