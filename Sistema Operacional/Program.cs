@@ -132,7 +132,7 @@ public class Program
         Console.WriteLine("╠══════════════════════════════════════════════╣");
         Console.WriteLine("║ GERENCIAMENTO DE PROCESSOS                   ║");
         Console.WriteLine("║ 1  - Criar Processo                          ║");
-        Console.WriteLine("║ 2  - Executar Próximo Processo               ║");
+        Console.WriteLine("║ 2 - Executar Próximo Quantumn/Processo       ║");
         Console.WriteLine("║ 3  - Finalizar Processo                      ║");
         Console.WriteLine("║ 4  - Pausar Processo                         ║");
         Console.WriteLine("║ 5  - Retomar Processo                        ║");
