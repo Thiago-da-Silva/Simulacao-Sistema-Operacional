@@ -37,9 +37,16 @@ public class Program
                 break;
         }
 
+        Console.Write("Digite o tempo de sobrecarga para troca de contexto (em ms): ");
+        if (!int.TryParse(Console.ReadLine(), out int sobrecarga) || sobrecarga < 0)
+        {
+            Console.WriteLine("Valor inválido. Usando sobrecarga padrão de 10ms.");
+            sobrecarga = 10;
+        }
+
         Console.Clear();
 
-        SistemaOperacional sistema = new SistemaOperacional(1024, escalonador); // 1024MB de memória
+        SistemaOperacional sistema = new SistemaOperacional(1024, escalonador, sobrecarga); // 1024MB de memória
         Console.WriteLine($"Sistema Operacional Iniciado com Escalonador: {nomeEscalonador}.");
         Console.WriteLine("=========================================================================");
         Console.WriteLine($"Memória Total: {sistema.GetTotalMemoria()}MB");
@@ -132,7 +139,7 @@ public class Program
         Console.WriteLine("╠══════════════════════════════════════════════╣");
         Console.WriteLine("║ GERENCIAMENTO DE PROCESSOS                   ║");
         Console.WriteLine("║ 1  - Criar Processo                          ║");
-        Console.WriteLine("║ 2 - Executar Próximo Quantumn/Processo       ║");
+        Console.WriteLine("║ 2 - Executar Próximo Quantum/Processo        ║");
         Console.WriteLine("║ 3  - Finalizar Processo                      ║");
         Console.WriteLine("║ 4  - Pausar Processo                         ║");
         Console.WriteLine("║ 5  - Retomar Processo                        ║");
@@ -374,6 +381,7 @@ public class Program
         Console.WriteLine($"║ Memória Usada: {memoriaUsada:F2}MB ({percentualUso:F1}%)".PadRight(55) + "║");
         Console.WriteLine($"║ Memória Disponível: {memoriaDisponivel:F2}MB".PadRight(55) + "║");
         Console.WriteLine($"║ Processos Ativos: {sistema.GetNumeroProcessos()}".PadRight(47) + "║");
+        Console.WriteLine($"║ Trocas de Contexto: {sistema.NumeroTrocasContexto}".PadRight(47) + "║");
 
         string statusCpu = sistema.IsCpuEmUso() ? "EM USO" : "LIVRE";
         Console.WriteLine($"║ Status da CPU: {statusCpu}".PadRight(55) + "║");

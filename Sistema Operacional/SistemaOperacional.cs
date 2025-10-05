@@ -17,16 +17,20 @@ namespace Sistema_Operacional
         private DateTime? DataFinal { get; set; } = null;
         private int ProcessoEmExecucaoId { get; set; } = 0;
         private IEscalonador Escalonador { get; set; }
+        private int TempoSobrecargaTrocaContexto { get; set; }
+        public int NumeroTrocasContexto { get; private set; } = 0;
 
         private List<Processo> Processos = new List<Processo>();
 
-        public SistemaOperacional(int totalMemoria, IEscalonador escalonadorInicial)
+        public SistemaOperacional(int totalMemoria, IEscalonador escalonadorInicial, int tempoSobrecarga)
         {
             TotalMemoria = totalMemoria;
             NumeroProcessos = 0;
             CpuEmUso = false;
             Escalonador = escalonadorInicial;
+            TempoSobrecargaTrocaContexto = tempoSobrecarga;
         }
+
 
         public void CriarProcesso(string nome, int prioridade = 5)
         {
@@ -108,6 +112,15 @@ namespace Sistema_Operacional
                 return;
             }
 
+            if (ProcessoEmExecucaoId != processo.Id && ProcessoEmExecucaoId != 0)
+            {
+                NumeroTrocasContexto++;
+                Console.WriteLine($"\n--- TROCA DE CONTEXTO ---");
+                Console.WriteLine($"Overhead do sistema: {TempoSobrecargaTrocaContexto}ms.");
+                System.Threading.Thread.Sleep(TempoSobrecargaTrocaContexto);
+                Console.WriteLine($"--------------------------\n");
+            }
+
             CpuEmUso = true;
             ProcessoEmExecucaoId = processo.Id;
             processo.Estado = Enums.Estados.Executando;
@@ -137,8 +150,6 @@ namespace Sistema_Operacional
             CpuEmUso = false;
             ProcessoEmExecucaoId = 0;
         }
-
-
         public void FinalizarProcesso(int id)
         {
             try
