@@ -9,16 +9,22 @@ namespace Sistema_Operacional
 {
     public class Processo
     {
-        public string Nome {  get; set; }
+        public string Nome { get; set; }
         public int Id { get; set; }
-        public int Prioridade {  get; set; }
+        public int Prioridade { get; set; }
         public List<Thread> Threads { get; set; } = new List<Thread>();
         public Estados Estado { get; set; } = Estados.Criado;
         public DateTime TempoChegada { get; set; }
         public float MemoriaUtilizada { get; set; } = 0;
-        public int TempoDeExecucaoTotal { get; private set; } // Em unidade de tempo (ex: ms)
+        public int TempoDeExecucaoTotal { get; private set; }
         public int TempoExecutado { get; set; } = 0;
         public bool Terminou => TempoExecutado >= TempoDeExecucaoTotal;
+
+        /// Contexto da CPU (Registradores + Contador de Programa).
+        public RegistradoresContexto ContextoCPU { get; set; }
+
+        /// Tabela de arquivos abertos por este processo.
+        public List<string> TabelaArquivosAbertos { get; private set; }
 
         public Processo(string nome, int id, int prioridade)
         {
@@ -26,18 +32,20 @@ namespace Sistema_Operacional
             Id = id;
             Prioridade = prioridade;
             TempoChegada = DateTime.Now;
-            // Simula um "burst time" aleatório para o processo.
             TempoDeExecucaoTotal = new Random().Next(500, 2001);
+            ContextoCPU = new RegistradoresContexto();
+            TabelaArquivosAbertos = new List<string>();
         }
 
         public bool AdicionarThread(float memoriaThread)
         {
             try
             {
-                var novaThread = new Thread(memoriaThread, this.Threads.Count + 1);
+                var novaThread = new Thread(memoriaThread, this.Threads.Count + 1, this);
+
                 this.Threads.Add(novaThread);
                 this.MemoriaUtilizada += memoriaThread;
-                
+
                 Console.WriteLine($"Thread adicionada ao processo {this.Nome} (ID: {this.Id}). Total de threads: {this.Threads.Count}, Memoria da Thread: {memoriaThread}MB");
                 Console.WriteLine($"Memoria total do processo: {this.MemoriaUtilizada}MB");
                 return true;
@@ -76,13 +84,12 @@ namespace Sistema_Operacional
                     Console.WriteLine($"Thread com ID {id} não encontrada no processo {this.Nome} (ID: {this.Id}).");
                     return;
                 }
-                
-                // Remove a memória da thread do total do processo
+
                 this.MemoriaUtilizada -= thread.MemoriaUtilizada;
-                
+
                 thread.Estado = Enums.Estados.Finalizado;
                 this.Threads.Remove(thread);
-                
+
                 Console.WriteLine($"Thread com ID {id} finalizada no processo {this.Nome} (ID: {this.Id}). Memoria liberada: {thread.MemoriaUtilizada}MB");
                 Console.WriteLine($"Total de threads restantes: {this.Threads.Count} | Memoria total do processo: {this.MemoriaUtilizada}MB");
             }
@@ -96,48 +103,5 @@ namespace Sistema_Operacional
         {
             return Threads.Sum(t => t.MemoriaUtilizada);
         }
-
-        //public void PausarThread(int id)
-        //{
-        //    try
-        //    {
-        //        Thread thread = this.Threads.FirstOrDefault(t => t.Id == id);
-        //        if (thread == null)
-        //        {
-        //            Console.WriteLine($"Thread com ID {id} não encontrada no processo {this.Nome} (ID: {this.Id}).");
-        //            return;
-        //        }
-        //        thread.Estado = Enums.Estados.Bloqueado;
-        //        Console.WriteLine($"Thread com ID {id} pausada no processo {this.Nome} (ID: {this.Id}).");
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Console.WriteLine($"Erro ao pausar a thread: {ex.Message}");
-        //    }
-        //}
-
-        //public void RetomarThread(int id)
-        //{
-        //    try
-        //    {
-        //        Thread thread = this.Threads.FirstOrDefault(t => t.Id == id);
-        //        if (thread == null)
-        //        {
-        //            Console.WriteLine($"Thread com ID {id} não encontrada no processo {this.Nome} (ID: {this.Id}).");
-        //            return;
-        //        }
-        //        if (thread.Estado != Enums.Estados.Bloqueado)
-        //        {
-        //            Console.WriteLine($"Thread com ID {id} não está pausada no processo {this.Nome} (ID: {this.Id}).");
-        //            return;
-        //        }
-        //        thread.Estado = Enums.Estados.Executando;
-        //        Console.WriteLine($"Thread com ID {id} retomada no processo {this.Nome} (ID: {this.Id}).");
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Console.WriteLine($"Erro ao retomar a thread: {ex.Message}");
-        //    }
-        //}
     }
 }
