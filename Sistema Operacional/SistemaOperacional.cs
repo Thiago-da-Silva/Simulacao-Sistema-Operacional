@@ -1,4 +1,4 @@
-﻿using Sistema_Operacional.Interface;
+﻿using Sistema_Operacional.Escalonamento;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -38,7 +38,7 @@ namespace Sistema_Operacional
         }
 
 
-        public void CriarProcesso(string nome, int prioridade = 5, float memoriaInicial = 10f)
+        public void CriarProcesso(string nome, int priority = 5, float memoriaInicial = 10f)
         {
             // 1. Calcular páginas necessárias
             int paginasNecessarias = (int)Math.Ceiling(memoriaInicial / (float)this.TamanhoPagina);
@@ -56,7 +56,7 @@ namespace Sistema_Operacional
             }
 
             // 3. Criar processo e registrar alocação
-            var novoProcesso = new Processo(nome, novoId, prioridade);
+            var novoProcesso = new Processo(nome, novoId, priority);
             novoProcesso.TabelaDePaginas.RegistrarAlocacao(framesAlocados);
 
             // Adiciona uma "thread principal" simbólica com a memória inicial

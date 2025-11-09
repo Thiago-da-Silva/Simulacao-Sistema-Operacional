@@ -1,4 +1,4 @@
-Ôªøusing System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,13 +9,13 @@ namespace Sistema_Operacional
     // Simula o contexto de hardware da CPU, como registradores e o Program Counter (PC).
     public class RegistradoresContexto
     {
-        // Registradores de prop√≥sito geral simulados
+        // Registradores de propÛsito geral simulados
         public int AX { get; set; }
         public int BX { get; set; }
         public int CX { get; set; }
         public int DX { get; set; }
 
-        // Contador de Programa (Program Counter) L√≥gico. Simula qual "linha" do programa o processo est√° executando.
+        // Contador de Programa (Program Counter) LÛgico. Simula qual "linha" do programa o processo est· executando.
         public int ContadorDePrograma { get; set; }
 
         public RegistradoresContexto()

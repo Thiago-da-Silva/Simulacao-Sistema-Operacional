@@ -1,4 +1,4 @@
-Ôªøusing System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -30,7 +30,7 @@ namespace Sistema_Operacional
         // Tabela de arquivos abertos por este processo.
         public List<string> TabelaArquivosAbertos { get; private set; }
 
-        // Tabela de p√°ginas que mapeia mem√≥ria l√≥gica para f√≠sica.
+        // Tabela de p·ginas que mapeia memÛria lÛgica para fÌsica.
         public TabelaPaginas TabelaDePaginas { get; private set; }
 
         public Processo(string nome, int id, int prioridade)
@@ -52,8 +52,8 @@ namespace Sistema_Operacional
                 var novaThread = new Thread(memoriaThread, this.Threads.Count + 1, this);
                 this.Threads.Add(novaThread);
 
-                Console.WriteLine($"Thread adicionada ao processo {this.Nome} (ID: {this.Id}). Total de threads: {this.Threads.Count}, Memoria L√≥gica da Thread: {memoriaThread}MB");
-                Console.WriteLine($"Memoria total (p√°ginas) do processo: {this.TabelaDePaginas.TotalPaginas()} p√°ginas");
+                Console.WriteLine($"Thread adicionada ao processo {this.Nome} (ID: {this.Id}). Total de threads: {this.Threads.Count}, Memoria LÛgica da Thread: {memoriaThread}MB");
+                Console.WriteLine($"Memoria total (p·ginas) do processo: {this.TabelaDePaginas.TotalPaginas()} p·ginas");
                 return true;
             }
             catch (Exception ex)
@@ -71,13 +71,13 @@ namespace Sistema_Operacional
                 return;
             }
 
-            Console.WriteLine($"Memoria f√≠sica alocada: {this.TabelaDePaginas.TotalPaginas()} p√°ginas");
-            Console.WriteLine($"Memoria l√≥gica total: {CalcularMemoriaTotal():F2}MB");
+            Console.WriteLine($"Memoria fÌsica alocada: {this.TabelaDePaginas.TotalPaginas()} p·ginas");
+            Console.WriteLine($"Memoria lÛgica total: {CalcularMemoriaTotal():F2}MB");
 
             Console.WriteLine("Threads:");
             foreach (var thread in Threads)
             {
-                Console.WriteLine($"Thread ID: {thread.Id} | Memoria L√≥gica: {thread.MemoriaUtilizada}MB | Estado: {thread.Estado}");
+                Console.WriteLine($"Thread ID: {thread.Id} | Memoria LÛgica: {thread.MemoriaUtilizada}MB | Estado: {thread.Estado}");
             }
             Console.WriteLine();
         }
@@ -89,11 +89,11 @@ namespace Sistema_Operacional
                 Thread thread = this.Threads.FirstOrDefault(t => t.Id == id);
                 if (thread == null)
                 {
-                    Console.WriteLine($"Thread com ID {id} n√£o encontrada no processo {this.Nome} (ID: {this.Id}).");
+                    Console.WriteLine($"Thread com ID {id} n„o encontrada no processo {this.Nome} (ID: {this.Id}).");
                     return null;
                 }
 
-                // A mem√≥ria ser√° liberada pelo SistemaOperacional
+                // A memÛria ser· liberada pelo SistemaOperacional
                 // this.MemoriaUtilizada -= thread.MemoriaUtilizada; // REMOVIDO
 
                 thread.Estado = Enums.Estados.Finalizado;
@@ -101,7 +101,7 @@ namespace Sistema_Operacional
 
                 Console.WriteLine($"Thread com ID {id} finalizada no processo {this.Nome} (ID: {this.Id}).");
                 Console.WriteLine($"Total de threads restantes: {this.Threads.Count}");
-                return thread; // Retorna a thread para o SO saber quanta mem√≥ria liberar
+                return thread; // Retorna a thread para o SO saber quanta memÛria liberar
             }
             catch (Exception ex)
             {

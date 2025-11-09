@@ -1,4 +1,4 @@
-ï»¿using Sistema_Operacional.Interface;
+using Sistema_Operacional.Escalonamento;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,7 +24,7 @@ namespace Sistema_Operacional
 
             processo.Estado = Enums.Estados.Pronto;
             FilaDeProntos.Enqueue(processo);
-            Console.WriteLine($"Processo '{processo.Nome}' (ID: {processo.Id}) adicionado Ã  fila Round Robin.");
+            Console.WriteLine($"Processo '{processo.Nome}' (ID: {processo.Id}) adicionado à fila Round Robin.");
         }
 
         public Processo ObterProximoProcesso()
@@ -64,7 +64,7 @@ namespace Sistema_Operacional
 
         public void ExibirInformacoesFila()
         {
-            Console.WriteLine($"=== INFORMAÃ‡Ã•ES DA FILA (ROUND ROBIN - Quantum: {Quantum}ms) ===");
+            Console.WriteLine($"=== INFORMAÇÕES DA FILA (ROUND ROBIN - Quantum: {Quantum}ms) ===");
             Console.WriteLine($"Processos na fila: {FilaDeProntos.Count}");
 
             if (FilaDeProntos.Count == 0)
@@ -73,11 +73,11 @@ namespace Sistema_Operacional
                 return;
             }
 
-            Console.WriteLine("Ordem de execuÃ§Ã£o (Circular):");
+            Console.WriteLine("Ordem de execução (Circular):");
             int i = 1;
             foreach (var processo in FilaDeProntos)
             {
-                Console.WriteLine($"  {i++}Âº: Processo '{processo.Nome}' (ID: {processo.Id}) - Executado: {processo.TempoExecutado}/{processo.TempoDeExecucaoTotal}ms");
+                Console.WriteLine($"  {i++}º: Processo '{processo.Nome}' (ID: {processo.Id}) - Executado: {processo.TempoExecutado}/{processo.TempoDeExecucaoTotal}ms");
             }
             Console.WriteLine();
         }

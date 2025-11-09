@@ -1,4 +1,4 @@
-ï»¿using Sistema_Operacional.Interface;
+using Sistema_Operacional.Escalonamento;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,7 +21,7 @@ namespace Sistema_Operacional
 
             FilaDeProntos = FilaDeProntos.OrderBy(p => p.Prioridade).ThenBy(p => p.TempoChegada).ToList();
 
-            Console.WriteLine($"Processo '{processo.Nome}' (ID: {processo.Id}) adicionado Ã  fila de prontos.");
+            Console.WriteLine($"Processo '{processo.Nome}' (ID: {processo.Id}) adicionado à fila de prontos.");
         }
 
         public Processo ObterProximoProcesso()
@@ -48,7 +48,7 @@ namespace Sistema_Operacional
 
         public void ExibirInformacoesFila()
         {
-            Console.WriteLine("=== INFORMAÃ‡Ã•ES DA FILA (POR PRIORIDADE) ===");
+            Console.WriteLine("=== INFORMAÇÕES DA FILA (POR PRIORIDADE) ===");
             Console.WriteLine($"Processos na fila: {FilaDeProntos.Count}");
 
             if (FilaDeProntos.Count == 0)
@@ -57,12 +57,12 @@ namespace Sistema_Operacional
                 return;
             }
 
-            Console.WriteLine("Ordem de execuÃ§Ã£o (Maior prioridade primeiro):");
+            Console.WriteLine("Ordem de execução (Maior prioridade primeiro):");
 
             for (int i = 0; i < FilaDeProntos.Count; i++)
             {
                 var processo = FilaDeProntos[i];
-                Console.WriteLine($"  {i + 1}Âº: Processo '{processo.Nome}' (ID: {processo.Id}, Prioridade: {processo.Prioridade})");
+                Console.WriteLine($"  {i + 1}º: Processo '{processo.Nome}' (ID: {processo.Id}, Prioridade: {processo.Prioridade})");
             }
             Console.WriteLine();
         }

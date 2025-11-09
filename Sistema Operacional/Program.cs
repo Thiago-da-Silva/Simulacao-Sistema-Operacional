@@ -1,5 +1,5 @@
 ﻿using Sistema_Operacional;
-using Sistema_Operacional.Interface;
+using Sistema_Operacional.Escalonamento;
 using System.Runtime.CompilerServices;
 
 public class Program

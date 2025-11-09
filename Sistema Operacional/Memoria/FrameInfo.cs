@@ -1,4 +1,4 @@
-Ôªøusing System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 namespace Sistema_Operacional
 {
-    // Informa√ß√£o sobre uma Moldura de P√°gina (Page Frame) na mem√≥ria f√≠sica
+    // InformaÁ„o sobre uma Moldura de P·gina (Page Frame) na memÛria fÌsica
     public class FrameInfo
     {
         public bool Ocupado { get; set; } = false;
         public int ProcessoId { get; set; } = -1;
-        public int PaginaLogicaId { get; set; } = -1; // A qual p√°gina l√≥gica esse frame est√° mapeado
+        public int PaginaLogicaId { get; set; } = -1; // A qual p·gina lÛgica esse frame est· mapeado
 
         public void Alocar(int processoId, int paginaLogicaId)
         {

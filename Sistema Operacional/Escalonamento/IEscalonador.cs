@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Sistema_Operacional.Interface
+namespace Sistema_Operacional.Escalonamento
 {
     public interface IEscalonador
     {
@@ -17,4 +17,3 @@ namespace Sistema_Operacional.Interface
         void ExibirInformacoesFila();
     }
 }
-

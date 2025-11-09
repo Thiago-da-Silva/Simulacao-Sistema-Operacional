@@ -1,4 +1,4 @@
-Ôªøusing System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,7 +10,7 @@ namespace Sistema_Operacional
     {
         public int ProcessoId { get; private set; }
 
-        // Mapeia (P√°gina L√≥gica, √çndice da Moldura F√≠sica)
+        // Mapeia (P·gina LÛgica, Õndice da Moldura FÌsica)
         private Dictionary<int, int> Mapeamento { get; set; }
         private int proximaPaginaLogica = 0;
 
@@ -30,14 +30,14 @@ namespace Sistema_Operacional
             }
         }
 
-        // Libera as 'N' √∫ltimas p√°ginas alocadas (√∫til ao finalizar threads)
+        // Libera as 'N' ˙ltimas p·ginas alocadas (˙til ao finalizar threads)
         public List<int> LiberarPaginasRecentes(int quantidade)
         {
             var framesLiberados = new List<int>();
             if (quantidade > Mapeamento.Count)
                 quantidade = Mapeamento.Count;
 
-            // Libera da √∫ltima p√°gina para a primeira (LIFO)
+            // Libera da ˙ltima p·gina para a primeira (LIFO)
             for (int i = 0; i < quantidade; i++)
             {
                 int paginaParaRemover = proximaPaginaLogica - 1;
@@ -51,7 +51,7 @@ namespace Sistema_Operacional
             return framesLiberados;
         }
 
-        // Obt√©m todos os frames usados por este processo (para finalizar)
+        // ObtÈm todos os frames usados por este processo (para finalizar)
         public List<int> ObterTodosFrames()
         {
             return Mapeamento.Values.ToList();

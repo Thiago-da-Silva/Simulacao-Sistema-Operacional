@@ -1,6 +1,6 @@
-Ôªøusing Sistema_Operacional.Enums;
+using Sistema_Operacional.Enums;
 using System;
-using System.Collections.Generic; // Necess√°rio para Stack
+using System.Collections.Generic; // Necess·rio para Stack
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,10 +13,10 @@ namespace Sistema_Operacional
         public Estados Estado { get; set; } = Estados.Criado;
         public int Id { get; set; }
 
-        // Refer√™ncia ao processo pai ao qual esta thread pertence.
+        // ReferÍncia ao processo pai ao qual esta thread pertence.
         public Processo ProcessoPai { get; private set; }
 
-        // Pilha l√≥gica simulada para a thread (ex: para chamadas de fun√ß√£o).
+        // Pilha lÛgica simulada para a thread (ex: para chamadas de funÁ„o).
         public Stack<string> PilhaLogica { get; private set; }
 
 
@@ -39,7 +39,7 @@ namespace Sistema_Operacional
             }
             else
             {
-                Console.WriteLine($"Thread com ID {this.Id} n√£o est√° em um estado que permite pausa.");
+                Console.WriteLine($"Thread com ID {this.Id} n„o est· em um estado que permite pausa.");
             }
         }
 
@@ -52,7 +52,7 @@ namespace Sistema_Operacional
             }
             else
             {
-                Console.WriteLine($"Thread com ID {this.Id} n√£o est√° em um estado que permite retomada.");
+                Console.WriteLine($"Thread com ID {this.Id} n„o est· em um estado que permite retomada.");
             }
         }
     }
