@@ -124,6 +124,8 @@ public class Program
                 case "0":
                     continuar = false;
                     Console.WriteLine("Encerrando Sistema Operacional...");
+                    // ATUALIZAÇÃO: Chama o relatório final
+                    MostrarMetricasFinais(sistema);
                     break;
                 default:
                     Console.WriteLine("Opção inválida! Tente novamente.");
@@ -482,4 +484,67 @@ public class Program
         Console.WriteLine("- Validação de limites de memória");
         Console.WriteLine("- Liberação automática de memória");
     }
+    static void MostrarMetricasFinais(SistemaOperacional sistema)
+    {
+        Console.Clear();
+        Console.WriteLine("╔══════════════════════════════════════════════╗");
+        Console.WriteLine("║        ESTATÍSTICAS FINAIS DA SIMULAÇÃO      ║");
+        Console.WriteLine("╚══════════════════════════════════════════════╝");
+
+        DateTime inicioSimulacao = sistema.GetDataInicio();
+        DateTime fimSimulacao = DateTime.Now;
+        TimeSpan tempoTotalSimulacao = fimSimulacao - inicioSimulacao;
+
+        var processosFinalizados = sistema.GetProcessosFinalizados();
+
+        if (processosFinalizados.Count == 0)
+        {
+            Console.WriteLine("\nNenhum processo foi finalizado. Não há estatísticas para mostrar.");
+            return;
+        }
+
+        Console.WriteLine("\n=== MÉTRICAS GERAIS DO SISTEMA ===");
+        Console.WriteLine($"Tempo Total de Simulação: {tempoTotalSimulacao.TotalSeconds:F2} segundos");
+
+        double throughput = processosFinalizados.Count / tempoTotalSimulacao.TotalSeconds;
+        Console.WriteLine($"Throughput do Sistema: {throughput:F4} processos/segundo ({processosFinalizados.Count} processos em {tempoTotalSimulacao.TotalSeconds:F2}s)");
+
+        double tempoTotalCPUOcupadaMs = sistema.GetTempoTotalCPUOcupadaMs();
+        double utilizacaoCPU = (tempoTotalCPUOcupadaMs / tempoTotalSimulacao.TotalMilliseconds) * 100.0;
+        Console.WriteLine($"Utilização total da CPU: {utilizacaoCPU:F2}%");
+
+        int trocas = sistema.NumeroTrocasContexto;
+        Console.WriteLine($"Número de Trocas de Contexto: {trocas}");
+
+        double sobrecargaTotalMs = trocas * 10;
+        double percentualSobrecarga = (sobrecargaTotalMs / tempoTotalCPUOcupadaMs) * 100.0;
+        Console.WriteLine($"Sobrecarga (Overhead): {sobrecargaTotalMs}ms (Aprox. {percentualSobrecarga:F2}% do tempo de CPU)");
+
+        Console.WriteLine("\n=== MÉTRICAS INDIVIDUAIS (Médias) ===");
+
+        double medioTurnaround = processosFinalizados.Average(p => ((TimeSpan)(p.TempoFinalizacao - p.TempoChegada)).TotalMilliseconds);
+        Console.WriteLine($"Tempo Médio de Retorno: {medioTurnaround:F2} ms");
+
+        double medioEspera = processosFinalizados.Average(p => p.TempoDeEspera.TotalMilliseconds);
+        Console.WriteLine($"Tempo Médio de Espera (Pronto): {medioEspera:F2} ms");
+
+        double medioResposta = processosFinalizados
+            .Where(p => p.TempoPrimeiraExecucao != null)
+            .Average(p => ((TimeSpan)(p.TempoPrimeiraExecucao - p.TempoChegada)).TotalMilliseconds);
+        Console.WriteLine($"Tempo Médio de Resposta: {medioResposta:F2} ms");
+
+        Console.WriteLine("\n--- Detalhes por Processo ---");
+        Console.WriteLine($"{"ID",-4} | {"Nome",-15} | {"Turnaround (ms)",-17} | {"Espera (ms)",-14} | {"Resposta (ms)",-15}");
+        Console.WriteLine(new string('-', 70));
+
+        foreach (var p in processosFinalizados.OrderBy(p => p.Id))
+        {
+            double turnaround = ((TimeSpan)(p.TempoFinalizacao - p.TempoChegada)).TotalMilliseconds;
+            double espera = p.TempoDeEspera.TotalMilliseconds;
+            double resposta = p.TempoPrimeiraExecucao.HasValue ? ((TimeSpan)(p.TempoPrimeiraExecucao - p.TempoChegada)).TotalMilliseconds : -1;
+
+            Console.WriteLine($"{p.Id,-4} | {p.Nome,-15} | {turnaround,-17:F0} | {espera,-14:F0} | {resposta,-15:F0}");
+        }
+    }
+
 }

@@ -23,6 +23,9 @@ namespace Sistema_Operacional
         private GerenciadorMemoria GerenciadorMemoria { get; set; }
         private int TamanhoPagina { get; set; }
 
+        private List<Processo> ProcessosFinalizados = new List<Processo>();
+        private double TempoTotalCPUOcupadaMs { get; set; } = 0;
+
         public SistemaOperacional(int totalMemoria, IEscalonador escalonadorInicial, int tempoSobrecarga, int tamanhoPagina)
         {
             NumeroProcessos = 0;
@@ -133,6 +136,15 @@ namespace Sistema_Operacional
                 Console.WriteLine($"Overhead do sistema: {TempoSobrecargaTrocaContexto}ms.");
                 System.Threading.Thread.Sleep(TempoSobrecargaTrocaContexto);
                 Console.WriteLine($"--------------------------\n");
+
+                TempoTotalCPUOcupadaMs += TempoSobrecargaTrocaContexto;
+
+                Console.WriteLine($"--------------------------\n");
+            }
+
+            if (processo.TempoPrimeiraExecucao == null)
+            {
+                processo.TempoPrimeiraExecucao = DateTime.Now;
             }
 
             CpuEmUso = true;
@@ -142,11 +154,13 @@ namespace Sistema_Operacional
             int quantum = (Escalonador is EscalonadorRoundRobin rr) ? rr.Quantum : processo.TempoDeExecucaoTotal;
             int tempoParaExecutar = Math.Min(quantum, processo.TempoDeExecucaoTotal - processo.TempoExecutado);
 
-            Console.WriteLine($"Executando quantumn do processo '{processo.Nome}' (ID: {processo.Id}) por {tempoParaExecutar}ms.");
-
             // Simula a passagem do tempo
             System.Threading.Thread.Sleep(tempoParaExecutar);
             processo.TempoExecutado += tempoParaExecutar;
+
+            TempoTotalCPUOcupadaMs += tempoParaExecutar;
+
+            Console.WriteLine($"Executando quantumn do processo '{processo.Nome}' (ID: {processo.Id}) por {tempoParaExecutar}ms.");
 
             Console.WriteLine($"Quantumn concluído. Processo '{processo.Nome}' executou por {processo.TempoExecutado}/{processo.TempoDeExecucaoTotal}ms no total.");
 
@@ -175,6 +189,10 @@ namespace Sistema_Operacional
                     return;
                 }
 
+                processo.TempoFinalizacao = DateTime.Now;
+                TimeSpan turnaround = (TimeSpan)(processo.TempoFinalizacao - processo.TempoChegada);
+                processo.TempoDeEspera = turnaround - TimeSpan.FromMilliseconds(processo.TempoDeExecucaoTotal);
+
                 List<int> framesLiberar = processo.TabelaDePaginas.ObterTodosFrames();
                 GerenciadorMemoria.LiberarPaginas(framesLiberar);
                 Console.WriteLine($"Memória liberada: {framesLiberar.Count} páginas ({framesLiberar.Count * TamanhoPagina}MB).");
@@ -182,6 +200,7 @@ namespace Sistema_Operacional
 
                 processo.Estado = Enums.Estados.Finalizado;
                 this.Processos.Remove(processo);
+                this.ProcessosFinalizados.Add(processo);
 
                 Escalonador.RemoverProcessoDaFila(id);
 
@@ -504,6 +523,19 @@ namespace Sistema_Operacional
         public int GetNumeroProcessos()
         {
             return this.Processos.Count;
+        }
+        public List<Processo> GetProcessosFinalizados()
+        {
+            return ProcessosFinalizados;
+        }
+        public double GetTempoTotalCPUOcupadaMs()
+        {
+            return TempoTotalCPUOcupadaMs;
+        }
+
+        public DateTime GetDataInicio()
+        {
+            return DataInicio;
         }
     }
 }

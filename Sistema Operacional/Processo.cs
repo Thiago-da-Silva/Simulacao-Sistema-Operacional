@@ -20,6 +20,10 @@ namespace Sistema_Operacional
         public int TempoExecutado { get; set; } = 0;
         public bool Terminou => TempoExecutado >= TempoDeExecucaoTotal;
 
+        public DateTime? TempoPrimeiraExecucao { get; set; } = null;
+        public DateTime? TempoFinalizacao { get; set; } = null;
+        public TimeSpan TempoDeEspera { get; set; } = TimeSpan.Zero;
+
         // Contexto da CPU (Registradores + Contador de Programa).
         public RegistradoresContexto ContextoCPU { get; set; }
 
