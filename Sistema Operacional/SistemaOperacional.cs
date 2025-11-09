@@ -537,5 +537,10 @@ namespace Sistema_Operacional
         {
             return DataInicio;
         }
+        public int GetTempoSobrecarga()
+        {
+            return TempoSobrecargaTrocaContexto;
+        }
+
     }
 }

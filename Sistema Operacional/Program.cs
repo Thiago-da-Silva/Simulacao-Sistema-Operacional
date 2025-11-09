@@ -1,5 +1,6 @@
 ﻿using Sistema_Operacional;
 using Sistema_Operacional.Interface;
+using System.Runtime.CompilerServices;
 
 public class Program
 {
@@ -112,7 +113,7 @@ public class Program
                     sistema.MostrarStatusMemoria();
                     break;
                 case "15":
-                    MostrarInformacoesSistema(sistema);
+                    MostrarInformacoesSistema(sistema, nomeEscalonador);
                     break;
                 case "16":
                     ExecutarDemo(sistema);
@@ -124,7 +125,6 @@ public class Program
                 case "0":
                     continuar = false;
                     Console.WriteLine("Encerrando Sistema Operacional...");
-                    // ATUALIZAÇÃO: Chama o relatório final
                     MostrarMetricasFinais(sistema);
                     break;
                 default:
@@ -383,7 +383,7 @@ public class Program
         }
     }
 
-    static void MostrarInformacoesSistema(SistemaOperacional sistema)
+    static void MostrarInformacoesSistema(SistemaOperacional sistema, string nomeEscalonador)
     {
         Console.WriteLine("╔══════════════════════════════════════════════╗");
         Console.WriteLine("║           INFORMAÇÕES DO SISTEMA             ║");
@@ -415,11 +415,9 @@ public class Program
                 Console.WriteLine($"║ Threads: {processoAtual.Threads.Count}".PadRight(47) + "║");
             }
         }
-
         Console.WriteLine($"║ Sistema iniciado: {DateTime.Now:dd/MM/yyyy HH:mm:ss}".PadRight(47) + "║");
         Console.WriteLine("║                                              ║");
-        Console.WriteLine("║ Algoritmo de Escalonamento: FCFS            ║");
-        Console.WriteLine("║    (First Come First Served)                ║");
+        Console.WriteLine($"║ Algoritmo: {nomeEscalonador}".PadRight(55) + "║");
         Console.WriteLine("║ Gerenciamento de Memória: Ativo             ║");
         Console.WriteLine("║    (Validação automática de limites)        ║");
         Console.WriteLine("╚══════════════════════════════════════════════╝");
@@ -477,7 +475,7 @@ public class Program
         sistema.ListarProcessos();
         sistema.MostrarStatusCPU();
 
-        Console.WriteLine("\nz\\Demonstração concluída!");
+        Console.WriteLine("\nDemonstração concluída!");
         Console.WriteLine("O sistema demonstrou:");
         Console.WriteLine("- Escalonamento FCFS");
         Console.WriteLine("- Gerenciamento de memória");
@@ -516,8 +514,9 @@ public class Program
         int trocas = sistema.NumeroTrocasContexto;
         Console.WriteLine($"Número de Trocas de Contexto: {trocas}");
 
-        double sobrecargaTotalMs = trocas * 10;
-        double percentualSobrecarga = (sobrecargaTotalMs / tempoTotalCPUOcupadaMs) * 100.0;
+        int sobrecargaUnitaria = sistema.GetTempoSobrecarga();
+        double sobrecargaTotalMs = trocas * sobrecargaUnitaria; 
+        double percentualSobrecarga = (tempoTotalCPUOcupadaMs > 0) ? (sobrecargaTotalMs / tempoTotalCPUOcupadaMs) * 100.0 : 0;
         Console.WriteLine($"Sobrecarga (Overhead): {sobrecargaTotalMs}ms (Aprox. {percentualSobrecarga:F2}% do tempo de CPU)");
 
         Console.WriteLine("\n=== MÉTRICAS INDIVIDUAIS (Médias) ===");
