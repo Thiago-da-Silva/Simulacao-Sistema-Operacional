@@ -13,19 +13,12 @@ namespace Sistema_Operacional
         public Estados Estado { get; set; } = Estados.Criado;
         public int Id { get; set; }
 
-        // --- INÍCIO DOS CAMPOS DO TCB (Req 3.2) ---
-
-        /// <summary>
-        /// Referência ao processo pai ao qual esta thread pertence.
-        /// </summary>
+        // Referência ao processo pai ao qual esta thread pertence.
         public Processo ProcessoPai { get; private set; }
 
-        /// <summary>
-        /// Pilha lógica simulada para a thread (ex: para chamadas de função).
-        /// </summary>
+        // Pilha lógica simulada para a thread (ex: para chamadas de função).
         public Stack<string> PilhaLogica { get; private set; }
 
-        // --- FIM DOS CAMPOS DO TCB ---
 
         public Thread(float memoriaUtilizada, int id, Processo processoPai)
         {

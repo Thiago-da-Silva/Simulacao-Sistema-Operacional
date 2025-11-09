@@ -44,9 +44,16 @@ public class Program
             sobrecarga = 10;
         }
 
+        Console.Write("Digite o Tamanho da Página/Moldura (em MB, ex: 4): ");
+        if (!int.TryParse(Console.ReadLine(), out int tamanhoPagina) || tamanhoPagina <= 0)
+        {
+            Console.WriteLine("Valor inválido. Usando padrão de 4MB.");
+            tamanhoPagina = 4;
+        }
+
         Console.Clear();
 
-        SistemaOperacional sistema = new SistemaOperacional(1024, escalonador, sobrecarga); // 1024MB de memória
+        SistemaOperacional sistema = new SistemaOperacional(1024, escalonador, sobrecarga, tamanhoPagina); // 1024MB de memória
         Console.WriteLine($"Sistema Operacional Iniciado com Escalonador: {nomeEscalonador}.");
         Console.WriteLine("=========================================================================");
         Console.WriteLine($"Memória Total: {sistema.GetTotalMemoria()}MB");
@@ -191,7 +198,14 @@ public class Program
             prioridade = 5;
         }
 
-        sistema.CriarProcesso(nome, prioridade);
+        Console.Write("Digite a memória inicial (MB) para o processo (ex: 50): ");
+        if (!float.TryParse(Console.ReadLine(), out float memoriaInicial) || memoriaInicial <= 0)
+        {
+            Console.WriteLine("Memória inválida! Usando padrão de 10MB.");
+            memoriaInicial = 10;
+        }
+
+        sistema.CriarProcesso(nome, prioridade, memoriaInicial);
 
     }
 
@@ -266,7 +280,8 @@ public class Program
         }
 
         Console.WriteLine($"Processo selecionado: {processo.Nome} (ID: {processo.Id})");
-        Console.WriteLine($"Memória atual do processo: {processo.MemoriaUtilizada:F2}MB");
+        Console.WriteLine($"Memória Lógica (soma das threads): {processo.CalcularMemoriaTotal():F2}MB");
+        Console.WriteLine($"Memória Física (páginas alocadas): {processo.TabelaDePaginas.TotalPaginas()} páginas");
         Console.WriteLine($"Memória disponível no sistema: {sistema.CalcularMemoriaDisponivel():F2}MB");
         Console.WriteLine();
 
@@ -393,7 +408,8 @@ public class Program
             if (processoAtual != null)
             {
                 Console.WriteLine($"║ Processo Executando: {processoAtual.Nome} (ID: {processoAtual.Id})".PadRight(55) + "║");
-                Console.WriteLine($"║ Memória do Processo: {processoAtual.MemoriaUtilizada:F2}MB".PadRight(55) + "║");
+                Console.WriteLine($"║ Memória Lógica: {processoAtual.CalcularMemoriaTotal():F2}MB".PadRight(55) + "║");
+                Console.WriteLine($"║ Páginas Alocadas: {processoAtual.TabelaDePaginas.TotalPaginas()}".PadRight(47) + "║");
                 Console.WriteLine($"║ Threads: {processoAtual.Threads.Count}".PadRight(47) + "║");
             }
         }
@@ -459,7 +475,7 @@ public class Program
         sistema.ListarProcessos();
         sistema.MostrarStatusCPU();
 
-        Console.WriteLine("\nDemonstração concluída!");
+        Console.WriteLine("\nz\\Demonstração concluída!");
         Console.WriteLine("O sistema demonstrou:");
         Console.WriteLine("- Escalonamento FCFS");
         Console.WriteLine("- Gerenciamento de memória");

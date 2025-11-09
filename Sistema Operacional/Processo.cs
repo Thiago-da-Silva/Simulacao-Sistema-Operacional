@@ -15,16 +15,19 @@ namespace Sistema_Operacional
         public List<Thread> Threads { get; set; } = new List<Thread>();
         public Estados Estado { get; set; } = Estados.Criado;
         public DateTime TempoChegada { get; set; }
-        public float MemoriaUtilizada { get; set; } = 0;
+        //public float MemoriaUtilizada { get; set; } = 0;
         public int TempoDeExecucaoTotal { get; private set; }
         public int TempoExecutado { get; set; } = 0;
         public bool Terminou => TempoExecutado >= TempoDeExecucaoTotal;
 
-        /// Contexto da CPU (Registradores + Contador de Programa).
+        // Contexto da CPU (Registradores + Contador de Programa).
         public RegistradoresContexto ContextoCPU { get; set; }
 
-        /// Tabela de arquivos abertos por este processo.
+        // Tabela de arquivos abertos por este processo.
         public List<string> TabelaArquivosAbertos { get; private set; }
+
+        // Tabela de páginas que mapeia memória lógica para física.
+        public TabelaPaginas TabelaDePaginas { get; private set; }
 
         public Processo(string nome, int id, int prioridade)
         {
@@ -35,6 +38,7 @@ namespace Sistema_Operacional
             TempoDeExecucaoTotal = new Random().Next(500, 2001);
             ContextoCPU = new RegistradoresContexto();
             TabelaArquivosAbertos = new List<string>();
+            TabelaDePaginas = new TabelaPaginas(this.Id);
         }
 
         public bool AdicionarThread(float memoriaThread)
@@ -42,12 +46,10 @@ namespace Sistema_Operacional
             try
             {
                 var novaThread = new Thread(memoriaThread, this.Threads.Count + 1, this);
-
                 this.Threads.Add(novaThread);
-                this.MemoriaUtilizada += memoriaThread;
 
-                Console.WriteLine($"Thread adicionada ao processo {this.Nome} (ID: {this.Id}). Total de threads: {this.Threads.Count}, Memoria da Thread: {memoriaThread}MB");
-                Console.WriteLine($"Memoria total do processo: {this.MemoriaUtilizada}MB");
+                Console.WriteLine($"Thread adicionada ao processo {this.Nome} (ID: {this.Id}). Total de threads: {this.Threads.Count}, Memoria Lógica da Thread: {memoriaThread}MB");
+                Console.WriteLine($"Memoria total (páginas) do processo: {this.TabelaDePaginas.TotalPaginas()} páginas");
                 return true;
             }
             catch (Exception ex)
@@ -65,16 +67,18 @@ namespace Sistema_Operacional
                 return;
             }
 
-            Console.WriteLine($"Memoria total do processo: {MemoriaUtilizada}MB");
+            Console.WriteLine($"Memoria física alocada: {this.TabelaDePaginas.TotalPaginas()} páginas");
+            Console.WriteLine($"Memoria lógica total: {CalcularMemoriaTotal():F2}MB");
+
             Console.WriteLine("Threads:");
             foreach (var thread in Threads)
             {
-                Console.WriteLine($"Thread ID: {thread.Id} | Memoria: {thread.MemoriaUtilizada}MB | Estado: {thread.Estado}");
+                Console.WriteLine($"Thread ID: {thread.Id} | Memoria Lógica: {thread.MemoriaUtilizada}MB | Estado: {thread.Estado}");
             }
             Console.WriteLine();
         }
 
-        public void FinalizarThread(int id)
+        public Thread FinalizarThread(int id)
         {
             try
             {
@@ -82,20 +86,23 @@ namespace Sistema_Operacional
                 if (thread == null)
                 {
                     Console.WriteLine($"Thread com ID {id} não encontrada no processo {this.Nome} (ID: {this.Id}).");
-                    return;
+                    return null;
                 }
 
-                this.MemoriaUtilizada -= thread.MemoriaUtilizada;
+                // A memória será liberada pelo SistemaOperacional
+                // this.MemoriaUtilizada -= thread.MemoriaUtilizada; // REMOVIDO
 
                 thread.Estado = Enums.Estados.Finalizado;
                 this.Threads.Remove(thread);
 
-                Console.WriteLine($"Thread com ID {id} finalizada no processo {this.Nome} (ID: {this.Id}). Memoria liberada: {thread.MemoriaUtilizada}MB");
-                Console.WriteLine($"Total de threads restantes: {this.Threads.Count} | Memoria total do processo: {this.MemoriaUtilizada}MB");
+                Console.WriteLine($"Thread com ID {id} finalizada no processo {this.Nome} (ID: {this.Id}).");
+                Console.WriteLine($"Total de threads restantes: {this.Threads.Count}");
+                return thread; // Retorna a thread para o SO saber quanta memória liberar
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Erro ao finalizar a thread: {ex.Message}");
+                return null;
             }
         }
 

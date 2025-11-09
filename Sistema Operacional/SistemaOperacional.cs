@@ -10,7 +10,6 @@ namespace Sistema_Operacional
 {
     public class SistemaOperacional
     {
-        private int TotalMemoria { get; set; }
         private int NumeroProcessos { get; set; } = 0;
         private bool CpuEmUso { get; set; } = false;
         private DateTime DataInicio { get; set; } = DateTime.Now;
@@ -21,54 +20,69 @@ namespace Sistema_Operacional
         public int NumeroTrocasContexto { get; private set; } = 0;
 
         private List<Processo> Processos = new List<Processo>();
+        private GerenciadorMemoria GerenciadorMemoria { get; set; }
+        private int TamanhoPagina { get; set; }
 
-        public SistemaOperacional(int totalMemoria, IEscalonador escalonadorInicial, int tempoSobrecarga)
+        public SistemaOperacional(int totalMemoria, IEscalonador escalonadorInicial, int tempoSobrecarga, int tamanhoPagina)
         {
-            TotalMemoria = totalMemoria;
             NumeroProcessos = 0;
             CpuEmUso = false;
             Escalonador = escalonadorInicial;
             TempoSobrecargaTrocaContexto = tempoSobrecarga;
+
+            this.TamanhoPagina = tamanhoPagina;
+            this.GerenciadorMemoria = new GerenciadorMemoria(totalMemoria, tamanhoPagina);
         }
 
 
-        public void CriarProcesso(string nome, int prioridade = 5)
+        public void CriarProcesso(string nome, int prioridade = 5, float memoriaInicial = 10f)
         {
-            int novoId = (Processos.Any() ? Processos.Max(p => p.Id) : 0) + 1;
-            var novoProcesso = new Processo(nome, novoId, prioridade);
-            this.Processos.Add(novoProcesso);
+            // 1. Calcular páginas necessárias
+            int paginasNecessarias = (int)Math.Ceiling(memoriaInicial / (float)this.TamanhoPagina);
+            if (paginasNecessarias == 0) paginasNecessarias = 1; // Aloca pelo menos 1 página
 
+            // 2. Tentar alocar memória
+            int novoId = (Processos.Any() ? Processos.Max(p => p.Id) : 0) + 1;
+            List<int> framesAlocados = GerenciadorMemoria.AlocarPaginas(novoId, paginasNecessarias);
+
+            if (framesAlocados == null)
+            {
+                Console.WriteLine($"ERRO: Memória insuficiente para criar processo '{nome}'. {paginasNecessarias} páginas solicitadas.");
+                GerenciadorMemoria.MostrarStatusMemoria();
+                return;
+            }
+
+            // 3. Criar processo e registrar alocação
+            var novoProcesso = new Processo(nome, novoId, prioridade);
+            novoProcesso.TabelaDePaginas.RegistrarAlocacao(framesAlocados);
+
+            // Adiciona uma "thread principal" simbólica com a memória inicial
+            novoProcesso.AdicionarThread(memoriaInicial);
+
+            this.Processos.Add(novoProcesso);
             Escalonador.AdicionarProcesso(novoProcesso);
 
-            Console.WriteLine($"Processo '{nome}' (Prioridade: {prioridade}) criado com ID {novoId} em {novoProcesso.TempoChegada:HH:mm:ss.fff}");
+            Console.WriteLine($"Processo '{nome}' (ID {novoId}) criado. {paginasNecessarias} páginas ({memoriaInicial}MB) alocadas.");
+            GerenciadorMemoria.MostrarStatusMemoria();
         }
 
         public float CalcularMemoriaUsada()
         {
-            return Processos.Sum(p => p.MemoriaUtilizada);
+            return GerenciadorMemoria.CalcularMemoriaUsada();
         }
 
         public float CalcularMemoriaDisponivel()
         {
-            return TotalMemoria - CalcularMemoriaUsada();
+            return GerenciadorMemoria.CalcularMemoriaDisponivel();
         }
-
         public bool VerificarMemoriaDisponivel(float memoriaRequerida)
         {
-            return CalcularMemoriaDisponivel() >= memoriaRequerida;
+            return GerenciadorMemoria.CalcularMemoriaDisponivel() >= memoriaRequerida;
         }
 
         public void MostrarStatusMemoria()
         {
-            float memoriaUsada = CalcularMemoriaUsada();
-            float memoriaDisponivel = CalcularMemoriaDisponivel();
-            float percentualUso = (memoriaUsada / TotalMemoria) * 100;
-
-            Console.WriteLine("=== STATUS DA MEMÓRIA ===");
-            Console.WriteLine($"Memória Total: {TotalMemoria}MB");
-            Console.WriteLine($"Memória Usada: {memoriaUsada:F2}MB ({percentualUso:F1}%)");
-            Console.WriteLine($"Memória Disponível: {memoriaDisponivel:F2}MB");
-            Console.WriteLine();
+            GerenciadorMemoria.MostrarStatusMemoria();
         }
 
         public void ListarProcessos()
@@ -83,7 +97,7 @@ namespace Sistema_Operacional
             foreach (var processo in Processos.OrderBy(p => p.Id))
             {
                 Console.WriteLine($"ID: {processo.Id} | Nome: {processo.Nome} | Estado: {processo.Estado}");
-                Console.WriteLine($"  Memória: {processo.MemoriaUtilizada:F2}MB | Prioridade: {processo.Prioridade}");
+                Console.WriteLine($"  Memória: {processo.TabelaDePaginas.TotalPaginas() * TamanhoPagina:F2}MB ({processo.TabelaDePaginas.TotalPaginas()} páginas)");
                 Console.WriteLine($"  Tempo Executado: {processo.TempoExecutado} / {processo.TempoDeExecucaoTotal}ms");
 
                 Console.WriteLine();
@@ -161,7 +175,10 @@ namespace Sistema_Operacional
                     return;
                 }
 
-                float memoriaLiberada = processo.MemoriaUtilizada;
+                List<int> framesLiberar = processo.TabelaDePaginas.ObterTodosFrames();
+                GerenciadorMemoria.LiberarPaginas(framesLiberar);
+                Console.WriteLine($"Memória liberada: {framesLiberar.Count} páginas ({framesLiberar.Count * TamanhoPagina}MB).");
+
 
                 processo.Estado = Enums.Estados.Finalizado;
                 this.Processos.Remove(processo);
@@ -172,7 +189,8 @@ namespace Sistema_Operacional
                 {
                     this.CpuEmUso = false;
                     this.ProcessoEmExecucaoId = 0;
-                    Console.WriteLine($"Processo com ID {id} finalizado. CPU liberada. Memória liberada: {memoriaLiberada:F2}MB");
+
+                    Console.WriteLine($"Processo com ID {id} finalizado. CPU liberada.");
 
                     if (Escalonador.QuantidadeProcessosNaFila > 0)
                     {
@@ -182,7 +200,7 @@ namespace Sistema_Operacional
                 }
                 else
                 {
-                    Console.WriteLine($"Processo com ID {id} finalizado. Memória liberada: {memoriaLiberada:F2}MB");
+                    Console.WriteLine($"Processo com ID {id} finalizado.");
                 }
 
                 MostrarStatusMemoria();
@@ -308,32 +326,39 @@ namespace Sistema_Operacional
             try
             {
                 Processo processo = this.Processos.FirstOrDefault(p => p.Id == processoId);
-                if (processo == null)
+                // ... (verificação de processo nulo)
+
+                // 1. Calcular páginas e verificar memória
+                int paginasAdicionais = (int)Math.Ceiling(memoriaThread / (float)this.TamanhoPagina);
+                if (paginasAdicionais == 0) paginasAdicionais = 1;
+
+                if (paginasAdicionais > GerenciadorMemoria.GetMoldurasDisponiveis())
                 {
-                    Console.WriteLine($"Processo com ID {processoId} não encontrado.");
+                    Console.WriteLine($"ERRO: Memória insuficiente para alocar thread!");
+                    Console.WriteLine($"Páginas solicitadas: {paginasAdicionais} ({memoriaThread}MB)");
+                    GerenciadorMemoria.MostrarStatusMemoria();
                     return false;
                 }
 
-                // Verifica se há memória suficiente
-                if (!VerificarMemoriaDisponivel(memoriaThread))
+                // 2. Tentar alocar
+                List<int> framesAlocados = GerenciadorMemoria.AlocarPaginas(processo.Id, paginasAdicionais);
+                if (framesAlocados == null)
                 {
-                    float memoriaDisponivel = CalcularMemoriaDisponivel();
-                    Console.WriteLine($"ERRO: Memória insuficiente!");
-                    Console.WriteLine($"Memória solicitada: {memoriaThread}MB");
-                    Console.WriteLine($"Memória disponível: {memoriaDisponivel:F2}MB");
-                    Console.WriteLine($"Memória total do sistema: {TotalMemoria}MB");
-                    MostrarStatusMemoria();
+                    Console.WriteLine($"ERRO: Falha na alocação (fragmentação?). Memória insuficiente.");
                     return false;
                 }
 
+                // 3. Registrar alocação e adicionar thread
+                processo.TabelaDePaginas.RegistrarAlocacao(framesAlocados);
                 bool sucesso = processo.AdicionarThread(memoriaThread);
+
                 if (sucesso)
                 {
-                    Console.WriteLine($"Thread criada com sucesso!");
-                    MostrarStatusMemoria();
+                    Console.WriteLine($"Thread alocada com sucesso! {paginasAdicionais} páginas alocadas.");
+                    GerenciadorMemoria.MostrarStatusMemoria();
                 }
                 return sucesso;
-            }
+            } 
             catch (Exception ex)
             {
                 Console.WriteLine($"Erro ao adicionar thread ao processo: {ex.Message}");
@@ -378,12 +403,25 @@ namespace Sistema_Operacional
             try
             {
                 Processo processo = this.Processos.FirstOrDefault(p => p.Id == processoId);
-                if (processo == null)
+                // (verificação de processo nulo)
+
+                // 1. Finaliza a thread e pega o objeto
+                Thread thread = processo.FinalizarThread(threadId);
+
+                if (thread != null)
                 {
-                    Console.WriteLine($"Processo com ID {processoId} não encontrado.");
-                    return;
+                    // 2. Calcular quantas páginas liberar
+                    int paginasLiberar = (int)Math.Ceiling(thread.MemoriaUtilizada / (float)this.TamanhoPagina);
+                    if (paginasLiberar == 0) paginasLiberar = 1;
+
+                    // 3. Liberar as N últimas páginas (LIFO)
+                    List<int> framesLiberados = processo.TabelaDePaginas.LiberarPaginasRecentes(paginasLiberar);
+
+                    // 4. Devolver ao gerenciador de memória
+                    GerenciadorMemoria.LiberarPaginas(framesLiberados);
+                    Console.WriteLine($"Memória da thread liberada: {framesLiberados.Count} páginas.");
+                    GerenciadorMemoria.MostrarStatusMemoria();
                 }
-                processo.FinalizarThread(threadId);
             }
             catch (Exception ex)
             {
@@ -459,15 +497,13 @@ namespace Sistema_Operacional
         {
             return CpuEmUso;
         }
-
         public int GetTotalMemoria()
         {
-            return TotalMemoria;
+            return GerenciadorMemoria.MemoriaTotal;
         }
-
         public int GetNumeroProcessos()
         {
-            return NumeroProcessos;
+            return this.Processos.Count;
         }
     }
 }
