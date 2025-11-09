@@ -1,9 +1,9 @@
-using Sistema_Operacional.Escalonamento;
+using Sistema_Operacional.Modelos;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Sistema_Operacional
+namespace Sistema_Operacional.Escalonamento
 {
     public class EscalonadorPrioridades : IEscalonador
     {

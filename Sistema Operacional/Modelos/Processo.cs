@@ -4,8 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Sistema_Operacional.Enums;
+using Sistema_Operacional.Memoria;
 
-namespace Sistema_Operacional
+namespace Sistema_Operacional.Modelos
 {
     public class Processo
     {

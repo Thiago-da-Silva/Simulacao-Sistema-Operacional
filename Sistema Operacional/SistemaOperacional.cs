@@ -1,4 +1,7 @@
 ﻿using Sistema_Operacional.Escalonamento;
+using Sistema_Operacional.Modelos;
+using Sistema_Operacional.Memoria;
+using Sistema_Operacional.Enums;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -425,7 +428,7 @@ namespace Sistema_Operacional
                 // (verificação de processo nulo)
 
                 // 1. Finaliza a thread e pega o objeto
-                Thread thread = processo.FinalizarThread(threadId);
+                Modelos.Thread thread = processo.FinalizarThread(threadId);
 
                 if (thread != null)
                 {

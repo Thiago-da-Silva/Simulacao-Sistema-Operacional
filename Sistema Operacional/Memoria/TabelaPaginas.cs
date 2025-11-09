@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Sistema_Operacional
+namespace Sistema_Operacional.Memoria
 {
     public class TabelaPaginas
     {

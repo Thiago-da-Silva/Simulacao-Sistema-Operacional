@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Sistema_Operacional
+namespace Sistema_Operacional.Memoria
 {
     // Informação sobre uma Moldura de Página (Page Frame) na memória física
     public class FrameInfo

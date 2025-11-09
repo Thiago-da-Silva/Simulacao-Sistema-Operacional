@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Sistema_Operacional
+namespace Sistema_Operacional.Modelos
 {
     // Simula o contexto de hardware da CPU, como registradores e o Program Counter (PC).
     public class RegistradoresContexto
