@@ -13,6 +13,8 @@ namespace Sistema_Operacional.Modelos
         public Estados Estado { get; set; } = Estados.Criado;
         public int Id { get; set; }
 
+        public List<int> PaginasLogicasAlocadas { get; set; } = new List<int>();
+
         // Referência ao processo pai ao qual esta thread pertence.
         public Processo ProcessoPai { get; private set; }
 

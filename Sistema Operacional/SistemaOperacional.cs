@@ -43,11 +43,11 @@ namespace Sistema_Operacional
 
         public void CriarProcesso(string nome, int priority = 5, float memoriaInicial = 10f)
         {
-            // 1. Calcular páginas necessárias
+            // Calcular páginas necessárias
             int paginasNecessarias = (int)Math.Ceiling(memoriaInicial / (float)this.TamanhoPagina);
             if (paginasNecessarias == 0) paginasNecessarias = 1; // Aloca pelo menos 1 página
 
-            // 2. Tentar alocar memória
+            // Tentar alocar memória
             int novoId = (Processos.Any() ? Processos.Max(p => p.Id) : 0) + 1;
             List<int> framesAlocados = GerenciadorMemoria.AlocarPaginas(novoId, paginasNecessarias);
 
@@ -58,12 +58,13 @@ namespace Sistema_Operacional
                 return;
             }
 
-            // 3. Criar processo e registrar alocação
+            // Criar processo e registrar alocação
             var novoProcesso = new Processo(nome, novoId, priority);
-            novoProcesso.TabelaDePaginas.RegistrarAlocacao(framesAlocados);
 
-            // Adiciona uma "thread principal" simbólica com a memória inicial
-            novoProcesso.AdicionarThread(memoriaInicial);
+            List<int> paginasLogicas = novoProcesso.TabelaDePaginas.RegistrarAlocacao(framesAlocados);
+
+            // Passamos as páginas lógicas para a thread
+            novoProcesso.AdicionarThread(memoriaInicial, paginasLogicas);
 
             this.Processos.Add(novoProcesso);
             Escalonador.AdicionarProcesso(novoProcesso);
@@ -233,34 +234,6 @@ namespace Sistema_Operacional
             }
         }
 
-        //public void ExecutarProcesso(int id)
-        //// Método mantido para compatibilidade, mas recomenda-se usar ExecutarProximoProcesso()
-        //{
-        //    try
-        //    {
-        //        if(this.CpuEmUso == true)
-        //        {
-        //            Console.WriteLine("CPU está em uso. Aguarde a finalização do processo atual.");
-        //            return;
-        //        }
-        //        Processo processo = this.Processos.FirstOrDefault(p => p.Id == id);
-        //        if (processo == null)
-        //        {
-        //            Console.WriteLine($"Processo com ID {id} não encontrado.");
-        //            return;
-        //        }
-        //        processo.Estado = Enums.Estados.Executando;
-        //        this.ProcessoEmExecucaoId = id;
-        //        this.CpuEmUso = true;
-        //        Console.WriteLine($"Processo com ID {id} executando.");
-
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Console.WriteLine($"Erro ao executar o processo: {ex.Message}");
-        //    }
-        //}
-
         public void PausarProcesso(int id)
         {
             try
@@ -348,9 +321,13 @@ namespace Sistema_Operacional
             try
             {
                 Processo processo = this.Processos.FirstOrDefault(p => p.Id == processoId);
-                // ... (verificação de processo nulo)
+                if (processo == null)
+                {
+                    Console.WriteLine($"Processo com ID {processoId} não encontrado!");
+                    return false;
+                }
 
-                // 1. Calcular páginas e verificar memória
+                // Calcular páginas e verificar memória
                 int paginasAdicionais = (int)Math.Ceiling(memoriaThread / (float)this.TamanhoPagina);
                 if (paginasAdicionais == 0) paginasAdicionais = 1;
 
@@ -362,7 +339,7 @@ namespace Sistema_Operacional
                     return false;
                 }
 
-                // 2. Tentar alocar
+                // Tentar alocar
                 List<int> framesAlocados = GerenciadorMemoria.AlocarPaginas(processo.Id, paginasAdicionais);
                 if (framesAlocados == null)
                 {
@@ -370,9 +347,10 @@ namespace Sistema_Operacional
                     return false;
                 }
 
-                // 3. Registrar alocação e adicionar thread
-                processo.TabelaDePaginas.RegistrarAlocacao(framesAlocados);
-                bool sucesso = processo.AdicionarThread(memoriaThread);
+                // Registrar alocação e adicionar thread
+                List<int> paginasLogicas = processo.TabelaDePaginas.RegistrarAlocacao(framesAlocados);
+
+                bool sucesso = processo.AdicionarThread(memoriaThread, paginasLogicas);
 
                 if (sucesso)
                 {
@@ -380,7 +358,7 @@ namespace Sistema_Operacional
                     GerenciadorMemoria.MostrarStatusMemoria();
                 }
                 return sucesso;
-            } 
+            }
             catch (Exception ex)
             {
                 Console.WriteLine($"Erro ao adicionar thread ao processo: {ex.Message}");
@@ -404,13 +382,13 @@ namespace Sistema_Operacional
                     Console.WriteLine($"Processo com ID {processoId} não encontrado.");
                     return;
                 }
-                
+
                 if (processo.Threads.Count == 0)
                 {
                     Console.WriteLine($"Processo '{processo.Nome}' (ID: {processo.Id}) não possui threads.");
                     return;
                 }
-                
+
                 Console.WriteLine($"=== THREADS DO PROCESSO '{processo.Nome}' (ID: {processo.Id}) ===");
                 processo.ListarThreads();
             }
@@ -427,19 +405,15 @@ namespace Sistema_Operacional
                 Processo processo = this.Processos.FirstOrDefault(p => p.Id == processoId);
                 // (verificação de processo nulo)
 
-                // 1. Finaliza a thread e pega o objeto
+                // Finaliza a thread e pega o objeto
                 Modelos.Thread thread = processo.FinalizarThread(threadId);
 
                 if (thread != null)
                 {
-                    // 2. Calcular quantas páginas liberar
-                    int paginasLiberar = (int)Math.Ceiling(thread.MemoriaUtilizada / (float)this.TamanhoPagina);
-                    if (paginasLiberar == 0) paginasLiberar = 1;
+                    // Em vez de LiberarPaginasRecentes
+                    List<int> framesLiberados = processo.TabelaDePaginas.LiberarPaginasEspecificas(thread.PaginasLogicasAlocadas);
 
-                    // 3. Liberar as N últimas páginas (LIFO)
-                    List<int> framesLiberados = processo.TabelaDePaginas.LiberarPaginasRecentes(paginasLiberar);
-
-                    // 4. Devolver ao gerenciador de memória
+                    // Devolver ao gerenciador de memória
                     GerenciadorMemoria.LiberarPaginas(framesLiberados);
                     Console.WriteLine($"Memória da thread liberada: {framesLiberados.Count} páginas.");
                     GerenciadorMemoria.MostrarStatusMemoria();
@@ -461,14 +435,14 @@ namespace Sistema_Operacional
                     Console.WriteLine($"Processo com ID {processoId} não encontrado.");
                     return;
                 }
-                
+
                 var thread = processo.Threads.FirstOrDefault(t => t.Id == threadId);
                 if (thread == null)
                 {
                     Console.WriteLine($"Thread com ID {threadId} não encontrada no processo {processo.Nome} (ID: {processo.Id}).");
                     return;
                 }
-                
+
                 thread.PausarThread();
                 Console.WriteLine($"Thread com ID {threadId} pausada no processo '{processo.Nome}' (ID: {processo.Id}).");
             }
@@ -488,14 +462,14 @@ namespace Sistema_Operacional
                     Console.WriteLine($"Processo com ID {processoId} não encontrado.");
                     return;
                 }
-                
+
                 var thread = processo.Threads.FirstOrDefault(t => t.Id == threadId);
                 if (thread == null)
                 {
                     Console.WriteLine($"Thread com ID {threadId} não encontrada no processo {processo.Nome} (ID: {processo.Id}).");
                     return;
                 }
-                
+
                 thread.RetomarThread();
                 Console.WriteLine($"Thread com ID {threadId} retomada no processo '{processo.Nome}' (ID: {processo.Id}).");
             }

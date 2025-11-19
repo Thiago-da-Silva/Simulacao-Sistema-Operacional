@@ -46,11 +46,18 @@ namespace Sistema_Operacional.Modelos
             TabelaDePaginas = new TabelaPaginas(this.Id);
         }
 
-        public bool AdicionarThread(float memoriaThread)
+        public bool AdicionarThread(float memoriaThread, List<int> paginasLogicas)
         {
             try
             {
                 var novaThread = new Thread(memoriaThread, this.Threads.Count + 1, this);
+
+                // Associa as páginas alocadas à thread
+                if (paginasLogicas != null)
+                {
+                    novaThread.PaginasLogicasAlocadas = paginasLogicas;
+                }
+
                 this.Threads.Add(novaThread);
 
                 Console.WriteLine($"Thread adicionada ao processo {this.Nome} (ID: {this.Id}). Total de threads: {this.Threads.Count}, Memoria Lógica da Thread: {memoriaThread}MB");

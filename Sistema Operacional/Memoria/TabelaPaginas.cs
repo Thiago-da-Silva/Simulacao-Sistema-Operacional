@@ -12,40 +12,37 @@ namespace Sistema_Operacional.Memoria
 
         // Mapeia (Página Lógica, Índice da Moldura Física)
         private Dictionary<int, int> Mapeamento { get; set; }
-        private int proximaPaginaLogica = 0;
+        private int contadorPaginasLogicas = 0;
 
         public TabelaPaginas(int processoId)
         {
             ProcessoId = processoId;
             Mapeamento = new Dictionary<int, int>();
         }
-
-        // Registra novos frames alocados para este processo
-        public void RegistrarAlocacao(List<int> indicesFrames)
+        public List<int> RegistrarAlocacao(List<int> indicesFrames)
         {
+            List<int> paginasLogicasCriadas = new List<int>();
+
             foreach (var frameIndex in indicesFrames)
             {
-                Mapeamento.Add(proximaPaginaLogica, frameIndex);
-                proximaPaginaLogica++;
+                // Simplesmente usa o contador incremental para gerar novos IDs lógicos
+                int idLogico = contadorPaginasLogicas++;
+                Mapeamento.Add(idLogico, frameIndex);
+                paginasLogicasCriadas.Add(idLogico);
             }
-        }
 
-        // Libera as 'N' últimas páginas alocadas (útil ao finalizar threads)
-        public List<int> LiberarPaginasRecentes(int quantidade)
+            return paginasLogicasCriadas;
+        }
+        public List<int> LiberarPaginasEspecificas(List<int> paginasLogicas)
         {
             var framesLiberados = new List<int>();
-            if (quantidade > Mapeamento.Count)
-                quantidade = Mapeamento.Count;
 
-            // Libera da última página para a primeira (LIFO)
-            for (int i = 0; i < quantidade; i++)
+            foreach (int paginaLogica in paginasLogicas)
             {
-                int paginaParaRemover = proximaPaginaLogica - 1;
-                if (Mapeamento.ContainsKey(paginaParaRemover))
+                if (Mapeamento.ContainsKey(paginaLogica))
                 {
-                    framesLiberados.Add(Mapeamento[paginaParaRemover]);
-                    Mapeamento.Remove(paginaParaRemover);
-                    proximaPaginaLogica--;
+                    framesLiberados.Add(Mapeamento[paginaLogica]);
+                    Mapeamento.Remove(paginaLogica);
                 }
             }
             return framesLiberados;
