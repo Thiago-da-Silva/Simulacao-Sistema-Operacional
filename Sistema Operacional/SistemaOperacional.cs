@@ -64,13 +64,22 @@ namespace Sistema_Operacional
             List<int> paginasLogicas = novoProcesso.TabelaDePaginas.RegistrarAlocacao(framesAlocados);
 
             // Passamos as páginas lógicas para a thread
-            novoProcesso.AdicionarThread(memoriaInicial, paginasLogicas);
+            bool sucesso = novoProcesso.AdicionarThread(memoriaInicial, paginasLogicas);
 
-            this.Processos.Add(novoProcesso);
-            Escalonador.AdicionarProcesso(novoProcesso);
+            if (sucesso)
+            {
+                this.Processos.Add(novoProcesso);
+                Escalonador.AdicionarProcesso(novoProcesso);
 
-            Console.WriteLine($"Processo '{nome}' (ID {novoId}) criado. {paginasNecessarias} páginas ({memoriaInicial}MB) alocadas.");
-            GerenciadorMemoria.MostrarStatusMemoria();
+                Console.WriteLine($"Processo '{nome}' (ID {novoId}) criado. {paginasNecessarias} páginas ({memoriaInicial}MB) alocadas.");
+                GerenciadorMemoria.MostrarStatusMemoria();
+            }
+            else
+            {
+                Console.WriteLine($"ERRO CRÍTICO: Falha ao criar thread inicial do processo '{nome}'. Revertendo...");
+                novoProcesso.TabelaDePaginas.LiberarPaginasEspecificas(paginasLogicas);
+                GerenciadorMemoria.LiberarPaginas(framesAlocados);
+            }
         }
 
         public float CalcularMemoriaUsada()
