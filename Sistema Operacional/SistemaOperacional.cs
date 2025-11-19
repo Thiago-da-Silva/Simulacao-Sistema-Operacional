@@ -357,6 +357,14 @@ namespace Sistema_Operacional
                     Console.WriteLine($"Thread alocada com sucesso! {paginasAdicionais} páginas alocadas.");
                     GerenciadorMemoria.MostrarStatusMemoria();
                 }
+                else
+                {
+                    Console.WriteLine("Falha ao criar thread. Revertendo alocação de memória...");
+
+                    processo.TabelaDePaginas.LiberarPaginasEspecificas(paginasLogicas);
+
+                    GerenciadorMemoria.LiberarPaginas(framesAlocados);
+                }
                 return sucesso;
             }
             catch (Exception ex)

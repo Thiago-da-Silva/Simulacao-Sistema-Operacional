@@ -11,10 +11,7 @@ namespace Sistema_Operacional.Escalonamento
         
         public int QuantidadeProcessosNaFila => FilaFCFS.Count;
 
-        /// <summary>
-        /// Adiciona um processo à fila FCFS baseado na ordem de chegada
-        /// </summary>
-        /// <param name="processo">Processo a ser adicionado</param>
+        //Adiciona um processo à fila FCFS baseado na ordem de chegada
         public void AdicionarProcesso(Processo processo)
         {
             if (processo == null)
@@ -25,10 +22,7 @@ namespace Sistema_Operacional.Escalonamento
             Console.WriteLine($"Processo '{processo.Nome}' (ID: {processo.Id}) adicionado à fila FCFS.");
         }
 
-        /// <summary>
         /// Remove e retorna o próximo processo da fila FCFS
-        /// </summary>
-        /// <returns>Próximo processo na fila ou null se a fila estiver vazia</returns>
         public Processo ObterProximoProcesso()
         {
             if (FilaFCFS.Count == 0)
@@ -36,21 +30,12 @@ namespace Sistema_Operacional.Escalonamento
 
             return FilaFCFS.Dequeue();
         }
-
-        /// <summary>
-        /// Visualiza a fila atual sem remover elementos
-        /// </summary>
-        /// <returns>Array dos processos na fila ordenados por FCFS</returns>
         public Processo[] VisualizarFila()
         {
             return FilaFCFS.ToArray();
         }
 
-        /// <summary>
-        /// Remove um processo específico da fila (usado quando um processo é finalizado antes de executar)
-        /// </summary>
-        /// <param name="processoId">ID do processo a ser removido</param>
-        /// <returns>True se o processo foi removido, false caso contrário</returns>
+        // Remove um processo específico da fila (usado quando um processo é finalizado antes de executar)
         public bool RemoverProcessoDaFila(int processoId)
         {
             var processosTemp = new List<Processo>();
@@ -80,18 +65,14 @@ namespace Sistema_Operacional.Escalonamento
             return processoRemovido;
         }
 
-        /// <summary>
-        /// Limpa toda a fila de processos
-        /// </summary>
+         // Limpa toda a fila de processos
         public void LimparFila()
         {
             FilaFCFS.Clear();
             Console.WriteLine("Fila FCFS limpa.");
         }
 
-        /// <summary>
-        /// Exibe informações detalhadas sobre a fila FCFS
-        /// </summary>
+        // Exibe informações detalhadas sobre a fila FCFS
         public void ExibirInformacoesFila()
         {
             Console.WriteLine("=== INFORMAÇÕES DA FILA FCFS ===");
