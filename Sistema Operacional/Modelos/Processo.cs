@@ -16,8 +16,14 @@ namespace Sistema_Operacional.Modelos
         public List<Thread> Threads { get; set; } = new List<Thread>();
         public Estados Estado { get; set; } = Estados.Criado;
         public DateTime TempoChegada { get; set; }
-        //public float MemoriaUtilizada { get; set; } = 0;
-        public int TempoDeExecucaoTotal { get; private set; }
+        
+        private int tempoDeExecucaoTotal;
+        public int TempoDeExecucaoTotal 
+        { 
+            get => tempoDeExecucaoTotal;
+            private set => tempoDeExecucaoTotal = value;
+        }
+        
         public int TempoExecutado { get; set; } = 0;
         public bool Terminou => TempoExecutado >= TempoDeExecucaoTotal;
 
@@ -40,7 +46,7 @@ namespace Sistema_Operacional.Modelos
             Id = id;
             Prioridade = prioridade;
             TempoChegada = DateTime.Now;
-            TempoDeExecucaoTotal = new Random().Next(500, 2001);
+            tempoDeExecucaoTotal = new Random().Next(500, 2001);
             ContextoCPU = new RegistradoresContexto();
             TabelaArquivosAbertos = new List<string>();
             TabelaDePaginas = new TabelaPaginas(this.Id);

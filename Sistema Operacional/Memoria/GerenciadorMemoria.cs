@@ -15,6 +15,10 @@ namespace Sistema_Operacional.Memoria
         // Este é o "mapa de molduras" físico
         private FrameInfo[] MapaDeMolduras;
 
+        public int TotalAlocacoes { get; private set; } = 0;
+        public int TotalLiberacoes { get; private set; } = 0;
+        public int TotalFalhasAlocacao { get; private set; } = 0;
+
         public GerenciadorMemoria(int memoriaTotalMB, int tamanhoPaginaMB)
         {
             if (tamanhoPaginaMB <= 0) tamanhoPaginaMB = 4; // Padrão
@@ -38,6 +42,7 @@ namespace Sistema_Operacional.Memoria
         {
             if (paginasNecessarias > GetMoldurasDisponiveis())
             {
+                TotalFalhasAlocacao++;
                 return null; // Memória insuficiente
             }
 
@@ -58,6 +63,7 @@ namespace Sistema_Operacional.Memoria
             // Se não encontrou o suficiente (improvável se verificamos antes, mas bom para concorrência)
             if (framesAlocados.Count < paginasNecessarias)
             {
+                TotalFalhasAlocacao++;
                 return null;
             }
 
@@ -67,6 +73,7 @@ namespace Sistema_Operacional.Memoria
                 MapaDeMolduras[frameIndex].Alocar(processoId, paginaLogicaId++); // O PaginaLogicaId aqui é só ilustrativo
             }
 
+            TotalAlocacoes++;
             return framesAlocados;
         }
 
@@ -79,6 +86,11 @@ namespace Sistema_Operacional.Memoria
                 {
                     MapaDeMolduras[frameIndex].Liberar();
                 }
+            }
+
+            if (indicesFrames.Count > 0)
+            {
+                TotalLiberacoes++;
             }
         }
 
@@ -100,6 +112,25 @@ namespace Sistema_Operacional.Memoria
             Console.WriteLine($"Molduras: {GetMoldurasUsadas()} / {TotalMolduras} (Usadas/Total)");
             Console.WriteLine($"Memória Usada: {memoriaUsada:F2}MB ({percentualUso:F1}%)");
             Console.WriteLine($"Memória Disponível: {memoriaDisponivel:F2}MB");
+            Console.WriteLine();
+        }
+
+        public void MostrarEstatisticasGerais()
+        {
+            Console.WriteLine("=== ESTATÍSTICAS GERAIS DE MEMÓRIA ===");
+            Console.WriteLine($"Total de alocações bem-sucedidas: {TotalAlocacoes}");
+            Console.WriteLine($"Total de liberações: {TotalLiberacoes}");
+            Console.WriteLine($"Total de falhas de alocação: {TotalFalhasAlocacao}");
+            
+            float fragmentacaoInterna = 0;
+            int moldurasUsadas = GetMoldurasUsadas();
+            if (moldurasUsadas > 0)
+            {
+                fragmentacaoInterna = ((float)moldurasUsadas * TamanhoPagina - CalcularMemoriaUsada()) / MemoriaTotal * 100;
+            }
+            
+            Console.WriteLine($"Fragmentação interna estimada: {fragmentacaoInterna:F2}%");
+            Console.WriteLine($"Utilização de memória: {(CalcularMemoriaUsada() / MemoriaTotal * 100):F2}%");
             Console.WriteLine();
         }
     }

@@ -10,29 +10,57 @@ namespace Sistema_Operacional.Memoria
     {
         public int ProcessoId { get; private set; }
 
-        // Mapeia (Página Lógica, Índice da Moldura Física)
         private Dictionary<int, int> Mapeamento { get; set; }
         private int contadorPaginasLogicas = 0;
 
-        public TabelaPaginas(int processoId)
+        private TLB TLB { get; set; }
+
+        public int TotalAcessos { get; private set; } = 0;
+        public int TotalPageFaults { get; private set; } = 0;
+
+        public TabelaPaginas(int processoId, int capacidadeTLB = 16)
         {
             ProcessoId = processoId;
             Mapeamento = new Dictionary<int, int>();
+            TLB = new TLB(capacidadeTLB);
         }
+
         public List<int> RegistrarAlocacao(List<int> indicesFrames)
         {
             List<int> paginasLogicasCriadas = new List<int>();
 
             foreach (var frameIndex in indicesFrames)
             {
-                // Simplesmente usa o contador incremental para gerar novos IDs lógicos
                 int idLogico = contadorPaginasLogicas++;
                 Mapeamento.Add(idLogico, frameIndex);
                 paginasLogicasCriadas.Add(idLogico);
+
+                TLB.Adicionar(idLogico, frameIndex);
             }
 
             return paginasLogicasCriadas;
         }
+
+        public int TraduzirEndereco(int paginaLogica)
+        {
+            TotalAcessos++;
+
+            if (TLB.TentarObter(paginaLogica, out int frameFisico))
+            {
+                return frameFisico;
+            }
+
+            if (Mapeamento.ContainsKey(paginaLogica))
+            {
+                frameFisico = Mapeamento[paginaLogica];
+                TLB.Adicionar(paginaLogica, frameFisico);
+                return frameFisico;
+            }
+
+            TotalPageFaults++;
+            return -1;
+        }
+
         public List<int> LiberarPaginasEspecificas(List<int> paginasLogicas)
         {
             var framesLiberados = new List<int>();
@@ -43,12 +71,12 @@ namespace Sistema_Operacional.Memoria
                 {
                     framesLiberados.Add(Mapeamento[paginaLogica]);
                     Mapeamento.Remove(paginaLogica);
+                    TLB.Remover(paginaLogica);
                 }
             }
             return framesLiberados;
         }
 
-        // Obtém todos os frames usados por este processo (para finalizar)
         public List<int> ObterTodosFrames()
         {
             return Mapeamento.Values.ToList();
@@ -57,6 +85,28 @@ namespace Sistema_Operacional.Memoria
         public int TotalPaginas()
         {
             return Mapeamento.Count;
+        }
+
+        public void MostrarEstatisticas()
+        {
+            Console.WriteLine($"=== ESTATÍSTICAS DE MEMÓRIA - Processo {ProcessoId} ===");
+            Console.WriteLine($"Total de páginas alocadas: {TotalPaginas()}");
+            Console.WriteLine($"Total de acessos à memória: {TotalAcessos}");
+            Console.WriteLine($"Total de Page Faults: {TotalPageFaults}");
+            
+            if (TotalAcessos > 0)
+            {
+                double taxaPageFault = (double)TotalPageFaults / TotalAcessos * 100.0;
+                Console.WriteLine($"Taxa de Page Fault: {taxaPageFault:F2}%");
+            }
+
+            Console.WriteLine();
+            TLB.MostrarEstatisticas();
+        }
+
+        public TLB GetTLB()
+        {
+            return TLB;
         }
     }
 }

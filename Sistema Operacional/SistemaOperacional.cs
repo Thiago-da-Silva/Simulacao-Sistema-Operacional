@@ -27,7 +27,8 @@ namespace Sistema_Operacional
         private int TamanhoPagina { get; set; }
 
         private List<Processo> ProcessosFinalizados = new List<Processo>();
-        private double TempoTotalCPUOcupadaMs { get; set; } = 0;
+        private double TempoTotalCPUUtilMs { get; set; } = 0;
+        private double TempoTotalOverheadMs { get; set; } = 0;
 
         public SistemaOperacional(int totalMemoria, IEscalonador escalonadorInicial, int tempoSobrecarga, int tamanhoPagina)
         {
@@ -40,14 +41,11 @@ namespace Sistema_Operacional
             this.GerenciadorMemoria = new GerenciadorMemoria(totalMemoria, tamanhoPagina);
         }
 
-
         public void CriarProcesso(string nome, int priority = 5, float memoriaInicial = 10f)
         {
-            // Calcular páginas necessárias
             int paginasNecessarias = (int)Math.Ceiling(memoriaInicial / (float)this.TamanhoPagina);
-            if (paginasNecessarias == 0) paginasNecessarias = 1; // Aloca pelo menos 1 página
+            if (paginasNecessarias == 0) paginasNecessarias = 1;
 
-            // Tentar alocar memória
             int novoId = (Processos.Any() ? Processos.Max(p => p.Id) : 0) + 1;
             List<int> framesAlocados = GerenciadorMemoria.AlocarPaginas(novoId, paginasNecessarias);
 
@@ -58,12 +56,8 @@ namespace Sistema_Operacional
                 return;
             }
 
-            // Criar processo e registrar alocação
             var novoProcesso = new Processo(nome, novoId, priority);
-
             List<int> paginasLogicas = novoProcesso.TabelaDePaginas.RegistrarAlocacao(framesAlocados);
-
-            // Passamos as páginas lógicas para a thread
             bool sucesso = novoProcesso.AdicionarThread(memoriaInicial, paginasLogicas);
 
             if (sucesso)
@@ -91,6 +85,7 @@ namespace Sistema_Operacional
         {
             return GerenciadorMemoria.CalcularMemoriaDisponivel();
         }
+
         public bool VerificarMemoriaDisponivel(float memoriaRequerida)
         {
             return GerenciadorMemoria.CalcularMemoriaDisponivel() >= memoriaRequerida;
@@ -99,6 +94,39 @@ namespace Sistema_Operacional
         public void MostrarStatusMemoria()
         {
             GerenciadorMemoria.MostrarStatusMemoria();
+        }
+
+        public void MostrarEstatisticasMemoria()
+        {
+            GerenciadorMemoria.MostrarEstatisticasGerais();
+
+            Console.WriteLine("=== ESTATÍSTICAS POR PROCESSO ===");
+            foreach (var processo in Processos.OrderBy(p => p.Id))
+            {
+                Console.WriteLine($"\nProcesso: {processo.Nome} (ID: {processo.Id})");
+                processo.TabelaDePaginas.MostrarEstatisticas();
+            }
+        }
+
+        public void SimularAcessoMemoria(int processoId, int paginaLogica)
+        {
+            var processo = Processos.FirstOrDefault(p => p.Id == processoId);
+            if (processo == null)
+            {
+                Console.WriteLine($"Processo com ID {processoId} não encontrado.");
+                return;
+            }
+
+            int frameFisico = processo.TabelaDePaginas.TraduzirEndereco(paginaLogica);
+            
+            if (frameFisico >= 0)
+            {
+                Console.WriteLine($"[Acesso] Processo {processoId} | Página Lógica {paginaLogica} → Frame Físico {frameFisico}");
+            }
+            else
+            {
+                Console.WriteLine($"[PAGE FAULT] Processo {processoId} | Página Lógica {paginaLogica} não encontrada!");
+            }
         }
 
         public void ListarProcessos()
@@ -115,7 +143,6 @@ namespace Sistema_Operacional
                 Console.WriteLine($"ID: {processo.Id} | Nome: {processo.Nome} | Estado: {processo.Estado}");
                 Console.WriteLine($"  Memória: {processo.TabelaDePaginas.TotalPaginas() * TamanhoPagina:F2}MB ({processo.TabelaDePaginas.TotalPaginas()} páginas)");
                 Console.WriteLine($"  Tempo Executado: {processo.TempoExecutado} / {processo.TempoDeExecucaoTotal}ms");
-
                 Console.WriteLine();
             }
 
@@ -150,9 +177,7 @@ namespace Sistema_Operacional
                 System.Threading.Thread.Sleep(TempoSobrecargaTrocaContexto);
                 Console.WriteLine($"--------------------------\n");
 
-                TempoTotalCPUOcupadaMs += TempoSobrecargaTrocaContexto;
-
-                Console.WriteLine($"--------------------------\n");
+                TempoTotalOverheadMs += TempoSobrecargaTrocaContexto;
             }
 
             if (processo.TempoPrimeiraExecucao == null)
@@ -167,30 +192,30 @@ namespace Sistema_Operacional
             int quantum = (Escalonador is EscalonadorRoundRobin rr) ? rr.Quantum : processo.TempoDeExecucaoTotal;
             int tempoParaExecutar = Math.Min(quantum, processo.TempoDeExecucaoTotal - processo.TempoExecutado);
 
-            // Simula a passagem do tempo
             System.Threading.Thread.Sleep(tempoParaExecutar);
             processo.TempoExecutado += tempoParaExecutar;
 
-            TempoTotalCPUOcupadaMs += tempoParaExecutar;
+            TempoTotalCPUUtilMs += tempoParaExecutar;
 
-            Console.WriteLine($"Executando quantumn do processo '{processo.Nome}' (ID: {processo.Id}) por {tempoParaExecutar}ms.");
-
-            Console.WriteLine($"Quantumn concluído. Processo '{processo.Nome}' executou por {processo.TempoExecutado}/{processo.TempoDeExecucaoTotal}ms no total.");
+            Console.WriteLine($"Executando quantum do processo '{processo.Nome}' (ID: {processo.Id}) por {tempoParaExecutar}ms.");
+            Console.WriteLine($"Quantum concluído. Processo '{processo.Nome}' executou por {processo.TempoExecutado}/{processo.TempoDeExecucaoTotal}ms no total.");
 
             if (processo.Terminou)
             {
                 Console.WriteLine($"Processo '{processo.Nome}' (ID: {processo.Id}) terminou a execução.");
-                FinalizarProcesso(processo.Id); // Finaliza o processo
+                FinalizarProcesso(processo.Id);
             }
             else
             {
-                Console.WriteLine($"Processo '{processo.Nome}' (ID: {processo.Id}) não terminou. Voltando para a fila.");
-                Escalonador.AdicionarProcesso(processo); // Devolve para a fila
+                processo.Estado = Estados.Pronto;
+                Console.WriteLine($"Processo '{processo.Nome}' (ID: {processo.Id}) voltando ao estado Pronto.");
+                Escalonador.AdicionarProcesso(processo);
             }
 
             CpuEmUso = false;
             ProcessoEmExecucaoId = 0;
         }
+
         public void FinalizarProcesso(int id)
         {
             try
@@ -209,7 +234,6 @@ namespace Sistema_Operacional
                 List<int> framesLiberar = processo.TabelaDePaginas.ObterTodosFrames();
                 GerenciadorMemoria.LiberarPaginas(framesLiberar);
                 Console.WriteLine($"Memória liberada: {framesLiberar.Count} páginas ({framesLiberar.Count * TamanhoPagina}MB).");
-
 
                 processo.Estado = Enums.Estados.Finalizado;
                 this.Processos.Remove(processo);
@@ -251,6 +275,12 @@ namespace Sistema_Operacional
                 if (processo == null)
                 {
                     Console.WriteLine($"Processo com ID {id} não encontrado.");
+                    return;
+                }
+
+                if (processo.Estado == Enums.Estados.Bloqueado)
+                {
+                    Console.WriteLine($"Processo com ID {id} já está pausado.");
                     return;
                 }
 
@@ -297,6 +327,7 @@ namespace Sistema_Operacional
                     return;
                 }
 
+                processo.Estado = Estados.Pronto;
                 Escalonador.AdicionarProcesso(processo);
                 Console.WriteLine($"Processo com ID {id} adicionado novamente à fila de prontos.");
             }
@@ -336,7 +367,6 @@ namespace Sistema_Operacional
                     return false;
                 }
 
-                // Calcular páginas e verificar memória
                 int paginasAdicionais = (int)Math.Ceiling(memoriaThread / (float)this.TamanhoPagina);
                 if (paginasAdicionais == 0) paginasAdicionais = 1;
 
@@ -348,7 +378,6 @@ namespace Sistema_Operacional
                     return false;
                 }
 
-                // Tentar alocar
                 List<int> framesAlocados = GerenciadorMemoria.AlocarPaginas(processo.Id, paginasAdicionais);
                 if (framesAlocados == null)
                 {
@@ -356,9 +385,7 @@ namespace Sistema_Operacional
                     return false;
                 }
 
-                // Registrar alocação e adicionar thread
                 List<int> paginasLogicas = processo.TabelaDePaginas.RegistrarAlocacao(framesAlocados);
-
                 bool sucesso = processo.AdicionarThread(memoriaThread, paginasLogicas);
 
                 if (sucesso)
@@ -369,9 +396,7 @@ namespace Sistema_Operacional
                 else
                 {
                     Console.WriteLine("Falha ao criar thread. Revertendo alocação de memória...");
-
                     processo.TabelaDePaginas.LiberarPaginasEspecificas(paginasLogicas);
-
                     GerenciadorMemoria.LiberarPaginas(framesAlocados);
                 }
                 return sucesso;
@@ -385,7 +410,6 @@ namespace Sistema_Operacional
 
         public void AdicionarThreadAoProcesso(int processoId)
         {
-            // Método mantido para compatibilidade - usa valor padrão
             AdicionarThreadAoProcesso(processoId, 1.0f);
         }
 
@@ -420,17 +444,17 @@ namespace Sistema_Operacional
             try
             {
                 Processo processo = this.Processos.FirstOrDefault(p => p.Id == processoId);
-                // (verificação de processo nulo)
+                if (processo == null)
+                {
+                    Console.WriteLine($"Processo com ID {processoId} não encontrado.");
+                    return;
+                }
 
-                // Finaliza a thread e pega o objeto
                 Modelos.Thread thread = processo.FinalizarThread(threadId);
 
                 if (thread != null)
                 {
-                    // Em vez de LiberarPaginasRecentes
                     List<int> framesLiberados = processo.TabelaDePaginas.LiberarPaginasEspecificas(thread.PaginasLogicasAlocadas);
-
-                    // Devolver ao gerenciador de memória
                     GerenciadorMemoria.LiberarPaginas(framesLiberados);
                     Console.WriteLine($"Memória da thread liberada: {framesLiberados.Count} páginas.");
                     GerenciadorMemoria.MostrarStatusMemoria();
@@ -457,6 +481,12 @@ namespace Sistema_Operacional
                 if (thread == null)
                 {
                     Console.WriteLine($"Thread com ID {threadId} não encontrada no processo {processo.Nome} (ID: {processo.Id}).");
+                    return;
+                }
+
+                if (thread.Estado == Estados.Bloqueado)
+                {
+                    Console.WriteLine($"Thread com ID {threadId} já está pausada.");
                     return;
                 }
 
@@ -487,6 +517,12 @@ namespace Sistema_Operacional
                     return;
                 }
 
+                if (thread.Estado != Estados.Bloqueado)
+                {
+                    Console.WriteLine($"Thread com ID {threadId} não está pausada.");
+                    return;
+                }
+
                 thread.RetomarThread();
                 Console.WriteLine($"Thread com ID {threadId} retomada no processo '{processo.Nome}' (ID: {processo.Id}).");
             }
@@ -510,31 +546,40 @@ namespace Sistema_Operacional
         {
             return CpuEmUso;
         }
+
         public int GetTotalMemoria()
         {
             return GerenciadorMemoria.MemoriaTotal;
         }
+
         public int GetNumeroProcessos()
         {
             return this.Processos.Count;
         }
+
         public List<Processo> GetProcessosFinalizados()
         {
             return ProcessosFinalizados;
         }
-        public double GetTempoTotalCPUOcupadaMs()
+
+        public double GetTempoTotalCPUUtilMs()
         {
-            return TempoTotalCPUOcupadaMs;
+            return TempoTotalCPUUtilMs;
+        }
+
+        public double GetTempoTotalOverheadMs()
+        {
+            return TempoTotalOverheadMs;
         }
 
         public DateTime GetDataInicio()
         {
             return DataInicio;
         }
+
         public int GetTempoSobrecarga()
         {
             return TempoSobrecargaTrocaContexto;
         }
-
     }
 }

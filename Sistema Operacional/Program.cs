@@ -119,6 +119,12 @@ public class Program
                 case "16":
                     ExecutarDemo(sistema);
                     break;
+                case "17":
+                    sistema.MostrarEstatisticasMemoria();
+                    break;
+                case "18":
+                    SimularAcessoMemoria(sistema);
+                    break;
                 case "99":
                     Console.Clear();
                     Console.WriteLine("Tela limpa!");
@@ -168,6 +174,8 @@ public class Program
         Console.WriteLine("║ 14 - Mostrar Status da Memória               ║");
         Console.WriteLine("║ 15 - Informações do Sistema                  ║");
         Console.WriteLine("║ 16 - Executar Demonstração                   ║");
+        Console.WriteLine("║ 17 - Estatísticas de Memória (TLB)           ║");
+        Console.WriteLine("║ 18 - Simular Acesso à Memória                ║");
         Console.WriteLine("║                                              ║");
         Console.WriteLine("║ 99 - Limpar Tela                             ║");
         Console.WriteLine("║ 0  - Sair                                    ║");
@@ -476,13 +484,65 @@ public class Program
         sistema.ListarProcessos();
         sistema.MostrarStatusCPU();
 
+        Console.WriteLine("\n9. Estatísticas de Memória e TLB:");
+        sistema.MostrarEstatisticasMemoria();
+
         Console.WriteLine("\nDemonstração concluída!");
         Console.WriteLine("O sistema demonstrou:");
         Console.WriteLine("- Escalonamento FCFS");
-        Console.WriteLine("- Gerenciamento de memória");
+        Console.WriteLine("- Gerenciamento de memória com paginação");
+        Console.WriteLine("- TLB (Translation Lookaside Buffer)");
+        Console.WriteLine("- Estatísticas de acesso à memória");
         Console.WriteLine("- Validação de limites de memória");
         Console.WriteLine("- Liberação automática de memória");
     }
+
+    static void SimularAcessoMemoria(SistemaOperacional sistema)
+    {
+        Console.WriteLine("=== SIMULAÇÃO DE ACESSO À MEMÓRIA ===");
+        
+        sistema.ListarProcessos();
+        
+        Console.Write("Digite o ID do processo: ");
+        if (!int.TryParse(Console.ReadLine(), out int processoId))
+        {
+            Console.WriteLine("ID inválido!");
+            return;
+        }
+
+        var processo = sistema.ObterProcessoPorId(processoId);
+        if (processo == null)
+        {
+            Console.WriteLine($"Processo com ID {processoId} não encontrado!");
+            return;
+        }
+
+        Console.WriteLine($"\nProcesso selecionado: {processo.Nome} (ID: {processo.Id})");
+        Console.WriteLine($"Páginas alocadas: {processo.TabelaDePaginas.TotalPaginas()}");
+        Console.WriteLine();
+
+        Console.Write("Digite o número de acessos aleatórios a simular: ");
+        if (!int.TryParse(Console.ReadLine(), out int numAcessos) || numAcessos <= 0)
+        {
+            Console.WriteLine("Número inválido! Usando padrão de 10 acessos.");
+            numAcessos = 10;
+        }
+
+        Random random = new Random();
+        int totalPaginas = processo.TabelaDePaginas.TotalPaginas();
+
+        Console.WriteLine($"\nSimulando {numAcessos} acessos aleatórios...\n");
+
+        for (int i = 0; i < numAcessos; i++)
+        {
+            int paginaLogica = random.Next(0, totalPaginas + 5);
+            sistema.SimularAcessoMemoria(processoId, paginaLogica);
+        }
+
+        Console.WriteLine();
+        processo.TabelaDePaginas.MostrarEstatisticas();
+    }
+
     static void MostrarMetricasFinais(SistemaOperacional sistema)
     {
         Console.Clear();
@@ -508,17 +568,22 @@ public class Program
         double throughput = processosFinalizados.Count / tempoTotalSimulacao.TotalSeconds;
         Console.WriteLine($"Throughput do Sistema: {throughput:F4} processos/segundo ({processosFinalizados.Count} processos em {tempoTotalSimulacao.TotalSeconds:F2}s)");
 
-        double tempoTotalCPUOcupadaMs = sistema.GetTempoTotalCPUOcupadaMs();
+        double tempoTotalCPUUtilMs = sistema.GetTempoTotalCPUUtilMs();
+        double tempoTotalOverheadMs = sistema.GetTempoTotalOverheadMs();
+        double tempoTotalCPUOcupadaMs = tempoTotalCPUUtilMs + tempoTotalOverheadMs;
+        
         double utilizacaoCPU = (tempoTotalCPUOcupadaMs / tempoTotalSimulacao.TotalMilliseconds) * 100.0;
-        Console.WriteLine($"Utilização total da CPU: {utilizacaoCPU:F2}%");
+        double utilizacaoCPUUtil = (tempoTotalCPUUtilMs / tempoTotalSimulacao.TotalMilliseconds) * 100.0;
+        
+        Console.WriteLine($"Utilização total da CPU: {utilizacaoCPU:F2}% (Útil: {utilizacaoCPUUtil:F2}%)");
+        Console.WriteLine($"Tempo de CPU Útil: {tempoTotalCPUUtilMs:F0}ms");
 
         int trocas = sistema.NumeroTrocasContexto;
         Console.WriteLine($"Número de Trocas de Contexto: {trocas}");
 
         int sobrecargaUnitaria = sistema.GetTempoSobrecarga();
-        double sobrecargaTotalMs = trocas * sobrecargaUnitaria; 
-        double percentualSobrecarga = (tempoTotalCPUOcupadaMs > 0) ? (sobrecargaTotalMs / tempoTotalCPUOcupadaMs) * 100.0 : 0;
-        Console.WriteLine($"Sobrecarga (Overhead): {sobrecargaTotalMs}ms (Aprox. {percentualSobrecarga:F2}% do tempo de CPU)");
+        double percentualSobrecarga = (tempoTotalCPUOcupadaMs > 0) ? (tempoTotalOverheadMs / tempoTotalCPUOcupadaMs) * 100.0 : 0;
+        Console.WriteLine($"Sobrecarga (Overhead): {tempoTotalOverheadMs:F0}ms ({percentualSobrecarga:F2}% do tempo total de CPU)");
 
         Console.WriteLine("\n=== MÉTRICAS INDIVIDUAIS (Médias) ===");
 
