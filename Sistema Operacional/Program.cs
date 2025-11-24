@@ -1,12 +1,40 @@
 ﻿using Sistema_Operacional;
 using Sistema_Operacional.Escalonamento;
 using Sistema_Operacional.Modelos;
+using Sistema_Operacional.Utilidades;
 using System.Runtime.CompilerServices;
 
 public class Program
 {
     static void Main(string[] args)
     {
+        Console.WriteLine("=== CONFIGURAÇÃO INICIAL DO SISTEMA ===");
+        Console.Write("Digite uma seed para o gerador aleatório (deixe vazio para usar seed baseada no tempo): ");
+        string seedInput = Console.ReadLine();
+        
+        int seed;
+        if (string.IsNullOrWhiteSpace(seedInput))
+        {
+            seed = Environment.TickCount;
+            Console.WriteLine($"Usando seed baseada no tempo: {seed}");
+        }
+        else if (int.TryParse(seedInput, out seed))
+        {
+            Console.WriteLine($"Usando seed fornecida: {seed}");
+        }
+        else
+        {
+            seed = Environment.TickCount;
+            Console.WriteLine($"Entrada inválida. Usando seed baseada no tempo: {seed}");
+        }
+        
+        AleatorioSistema.Inicializar(seed);
+        Logger.LimparLog();
+        Logger.Registrar("Sistema Operacional Iniciado");
+        
+        Console.WriteLine("Nota: Use a mesma seed para reproduzir resultados idênticos.");
+        Console.WriteLine();
+
         Console.WriteLine("Escolha o algoritmo de escalonamento:");
         Console.WriteLine("1 - FCFS (First Come, First Served)");
         Console.WriteLine("2 - Prioridades (Não Preemptivo)");
@@ -55,7 +83,9 @@ public class Program
 
         Console.Clear();
 
-        SistemaOperacional sistema = new SistemaOperacional(1024, escalonador, sobrecarga, tamanhoPagina); // 1024MB de memória
+        SistemaOperacional sistema = new SistemaOperacional(1024, escalonador, sobrecarga, tamanhoPagina);
+        Logger.Registrar($"Escalonador: {nomeEscalonador}, Memória: 1024MB, Sobrecarga: {sobrecarga}ms, Página: {tamanhoPagina}MB");
+        
         Console.WriteLine($"Sistema Operacional Iniciado com Escalonador: {nomeEscalonador}.");
         Console.WriteLine("=========================================================================");
         Console.WriteLine($"Memória Total: {sistema.GetTotalMemoria()}MB");
@@ -125,12 +155,16 @@ public class Program
                 case "18":
                     SimularAcessoMemoria(sistema);
                     break;
+                case "19":
+                    VisualizarLog();
+                    break;
                 case "99":
                     Console.Clear();
                     Console.WriteLine("Tela limpa!");
                     break;
                 case "0":
                     continuar = false;
+                    Logger.Registrar("Sistema Operacional Encerrado");
                     Console.WriteLine("Encerrando Sistema Operacional...");
                     MostrarMetricasFinais(sistema);
                     break;
@@ -176,6 +210,7 @@ public class Program
         Console.WriteLine("║ 16 - Executar Demonstração                   ║");
         Console.WriteLine("║ 17 - Estatísticas de Memória (TLB)           ║");
         Console.WriteLine("║ 18 - Simular Acesso à Memória                ║");
+        Console.WriteLine("║ 19 - Visualizar Log da Simulação             ║");
         Console.WriteLine("║                                              ║");
         Console.WriteLine("║ 99 - Limpar Tela                             ║");
         Console.WriteLine("║ 0  - Sair                                    ║");
@@ -425,6 +460,7 @@ public class Program
             }
         }
         Console.WriteLine($"║ Sistema iniciado: {DateTime.Now:dd/MM/yyyy HH:mm:ss}".PadRight(47) + "║");
+        Console.WriteLine($"║ Seed Aleatória: {AleatorioSistema.GetSeedAtual()}".PadRight(47) + "║");
         Console.WriteLine("║                                              ║");
         Console.WriteLine($"║ Algoritmo: {nomeEscalonador}".PadRight(55) + "║");
         Console.WriteLine("║ Gerenciamento de Memória: Ativo             ║");
@@ -528,19 +564,25 @@ public class Program
             numAcessos = 10;
         }
 
-        Random random = new Random();
         int totalPaginas = processo.TabelaDePaginas.TotalPaginas();
 
         Console.WriteLine($"\nSimulando {numAcessos} acessos aleatórios...\n");
 
         for (int i = 0; i < numAcessos; i++)
         {
-            int paginaLogica = random.Next(0, totalPaginas + 5);
+            int paginaLogica = AleatorioSistema.Next(0, totalPaginas + 5);
             sistema.SimularAcessoMemoria(processoId, paginaLogica);
         }
 
         Console.WriteLine();
         processo.TabelaDePaginas.MostrarEstatisticas();
+    }
+
+    static void VisualizarLog()
+    {
+        Console.WriteLine("=== VISUALIZAR LOG DA SIMULAÇÃO ===");
+        Logger.Ler();
+        Console.WriteLine();
     }
 
     static void MostrarMetricasFinais(SistemaOperacional sistema)
@@ -550,11 +592,18 @@ public class Program
         Console.WriteLine("║        ESTATÍSTICAS FINAIS DA SIMULAÇÃO      ║");
         Console.WriteLine("╚══════════════════════════════════════════════╝");
 
+        Console.WriteLine($"\nSeed utilizada: {AleatorioSistema.GetSeedAtual()}");
+        Console.WriteLine("(Use a mesma seed para reproduzir esta simulação)\n");
+
         DateTime inicioSimulacao = sistema.GetDataInicio();
         DateTime fimSimulacao = DateTime.Now;
         TimeSpan tempoTotalSimulacao = fimSimulacao - inicioSimulacao;
 
         var processosFinalizados = sistema.GetProcessosFinalizados();
+
+        Logger.Registrar("=== ESTATÍSTICAS FINAIS ===");
+        Logger.Registrar($"Tempo Total de Simulação: {tempoTotalSimulacao.TotalSeconds:F2}s");
+        Logger.Registrar($"Processos Finalizados: {processosFinalizados.Count}");
 
         if (processosFinalizados.Count == 0)
         {
@@ -566,6 +615,7 @@ public class Program
         Console.WriteLine($"Tempo Total de Simulação: {tempoTotalSimulacao.TotalSeconds:F2} segundos");
 
         double throughput = processosFinalizados.Count / tempoTotalSimulacao.TotalSeconds;
+        Logger.Registrar($"Throughput: {throughput:F4} processos/segundo");
         Console.WriteLine($"Throughput do Sistema: {throughput:F4} processos/segundo ({processosFinalizados.Count} processos em {tempoTotalSimulacao.TotalSeconds:F2}s)");
 
         double tempoTotalCPUUtilMs = sistema.GetTempoTotalCPUUtilMs();
@@ -574,6 +624,10 @@ public class Program
         
         double utilizacaoCPU = (tempoTotalCPUOcupadaMs / tempoTotalSimulacao.TotalMilliseconds) * 100.0;
         double utilizacaoCPUUtil = (tempoTotalCPUUtilMs / tempoTotalSimulacao.TotalMilliseconds) * 100.0;
+        
+        Logger.Registrar($"Utilização CPU: {utilizacaoCPU:F2}% (Útil: {utilizacaoCPUUtil:F2}%)");
+        Logger.Registrar($"Trocas de Contexto: {sistema.NumeroTrocasContexto}");
+        Logger.Registrar($"Overhead Total: {tempoTotalOverheadMs:F0}ms");
         
         Console.WriteLine($"Utilização total da CPU: {utilizacaoCPU:F2}% (Útil: {utilizacaoCPUUtil:F2}%)");
         Console.WriteLine($"Tempo de CPU Útil: {tempoTotalCPUUtilMs:F0}ms");
@@ -588,14 +642,17 @@ public class Program
         Console.WriteLine("\n=== MÉTRICAS INDIVIDUAIS (Médias) ===");
 
         double medioTurnaround = processosFinalizados.Average(p => ((TimeSpan)(p.TempoFinalizacao - p.TempoChegada)).TotalMilliseconds);
+        Logger.Registrar($"Tempo Médio de Retorno: {medioTurnaround:F2}ms");
         Console.WriteLine($"Tempo Médio de Retorno: {medioTurnaround:F2} ms");
 
         double medioEspera = processosFinalizados.Average(p => p.TempoDeEspera.TotalMilliseconds);
+        Logger.Registrar($"Tempo Médio de Espera: {medioEspera:F2}ms");
         Console.WriteLine($"Tempo Médio de Espera (Pronto): {medioEspera:F2} ms");
 
         double medioResposta = processosFinalizados
             .Where(p => p.TempoPrimeiraExecucao != null)
             .Average(p => ((TimeSpan)(p.TempoPrimeiraExecucao - p.TempoChegada)).TotalMilliseconds);
+        Logger.Registrar($"Tempo Médio de Resposta: {medioResposta:F2}ms");
         Console.WriteLine($"Tempo Médio de Resposta: {medioResposta:F2} ms");
 
         Console.WriteLine("\n--- Detalhes por Processo ---");

@@ -2,6 +2,7 @@
 using Sistema_Operacional.Modelos;
 using Sistema_Operacional.Memoria;
 using Sistema_Operacional.Enums;
+using Sistema_Operacional.Utilidades;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -65,11 +66,14 @@ namespace Sistema_Operacional
                 this.Processos.Add(novoProcesso);
                 Escalonador.AdicionarProcesso(novoProcesso);
 
+                Logger.Registrar($"PROCESSO CRIADO: '{nome}' (ID: {novoId}, Prioridade: {priority}, Memória: {memoriaInicial}MB, Páginas: {paginasNecessarias})");
+                
                 Console.WriteLine($"Processo '{nome}' (ID {novoId}) criado. {paginasNecessarias} páginas ({memoriaInicial}MB) alocadas.");
                 GerenciadorMemoria.MostrarStatusMemoria();
             }
             else
             {
+                Logger.Registrar($"ERRO: Falha ao criar processo '{nome}' - Thread inicial não criada");
                 Console.WriteLine($"ERRO CRÍTICO: Falha ao criar thread inicial do processo '{nome}'. Revertendo...");
                 novoProcesso.TabelaDePaginas.LiberarPaginasEspecificas(paginasLogicas);
                 GerenciadorMemoria.LiberarPaginas(framesAlocados);
@@ -172,6 +176,8 @@ namespace Sistema_Operacional
             if (ProcessoEmExecucaoId != processo.Id && ProcessoEmExecucaoId != 0)
             {
                 NumeroTrocasContexto++;
+                Logger.Registrar($"TROCA DE CONTEXTO: Processo {ProcessoEmExecucaoId} -> {processo.Id} (Overhead: {TempoSobrecargaTrocaContexto}ms)");
+                
                 Console.WriteLine($"\n--- TROCA DE CONTEXTO ---");
                 Console.WriteLine($"Overhead do sistema: {TempoSobrecargaTrocaContexto}ms.");
                 System.Threading.Thread.Sleep(TempoSobrecargaTrocaContexto);
@@ -183,6 +189,7 @@ namespace Sistema_Operacional
             if (processo.TempoPrimeiraExecucao == null)
             {
                 processo.TempoPrimeiraExecucao = DateTime.Now;
+                Logger.Registrar($"PRIMEIRA EXECUÇÃO: Processo '{processo.Nome}' (ID: {processo.Id})");
             }
 
             CpuEmUso = true;
@@ -197,11 +204,14 @@ namespace Sistema_Operacional
 
             TempoTotalCPUUtilMs += tempoParaExecutar;
 
+            Logger.Registrar($"EXECUÇÃO: Processo '{processo.Nome}' (ID: {processo.Id}) executou {tempoParaExecutar}ms ({processo.TempoExecutado}/{processo.TempoDeExecucaoTotal}ms)");
+            
             Console.WriteLine($"Executando quantum do processo '{processo.Nome}' (ID: {processo.Id}) por {tempoParaExecutar}ms.");
             Console.WriteLine($"Quantum concluído. Processo '{processo.Nome}' executou por {processo.TempoExecutado}/{processo.TempoDeExecucaoTotal}ms no total.");
 
             if (processo.Terminou)
             {
+                Logger.Registrar($"PROCESSO COMPLETO: '{processo.Nome}' (ID: {processo.Id}) finalizou sua execução");
                 Console.WriteLine($"Processo '{processo.Nome}' (ID: {processo.Id}) terminou a execução.");
                 FinalizarProcesso(processo.Id);
             }
@@ -233,6 +243,10 @@ namespace Sistema_Operacional
 
                 List<int> framesLiberar = processo.TabelaDePaginas.ObterTodosFrames();
                 GerenciadorMemoria.LiberarPaginas(framesLiberar);
+                
+                Logger.Registrar($"PROCESSO FINALIZADO: '{processo.Nome}' (ID: {id}) - Memória liberada: {framesLiberar.Count} páginas ({framesLiberar.Count * TamanhoPagina}MB)");
+                Logger.Registrar($"  Métricas - Turnaround: {turnaround.TotalMilliseconds:F0}ms, Espera: {processo.TempoDeEspera.TotalMilliseconds:F0}ms");
+                
                 Console.WriteLine($"Memória liberada: {framesLiberar.Count} páginas ({framesLiberar.Count * TamanhoPagina}MB).");
 
                 processo.Estado = Enums.Estados.Finalizado;
@@ -246,6 +260,7 @@ namespace Sistema_Operacional
                     this.CpuEmUso = false;
                     this.ProcessoEmExecucaoId = 0;
 
+                    Logger.Registrar($"CPU LIBERADA após finalização do processo ID: {id}");
                     Console.WriteLine($"Processo com ID {id} finalizado. CPU liberada.");
 
                     if (Escalonador.QuantidadeProcessosNaFila > 0)
@@ -289,6 +304,8 @@ namespace Sistema_Operacional
                     processo.Estado = Enums.Estados.Bloqueado;
                     this.CpuEmUso = false;
                     this.ProcessoEmExecucaoId = 0;
+                    
+                    Logger.Registrar($"PROCESSO PAUSADO: '{processo.Nome}' (ID: {id}) - CPU liberada");
                     Console.WriteLine($"Processo com ID {id} pausado. CPU liberada.");
 
                     if (Escalonador.QuantidadeProcessosNaFila > 0)
@@ -301,6 +318,8 @@ namespace Sistema_Operacional
                 {
                     processo.Estado = Enums.Estados.Bloqueado;
                     Escalonador.RemoverProcessoDaFila(id);
+                    
+                    Logger.Registrar($"PROCESSO PAUSADO: '{processo.Nome}' (ID: {id})");
                     Console.WriteLine($"Processo com ID {id} pausado.");
                 }
             }
@@ -329,6 +348,8 @@ namespace Sistema_Operacional
 
                 processo.Estado = Estados.Pronto;
                 Escalonador.AdicionarProcesso(processo);
+                
+                Logger.Registrar($"PROCESSO RETOMADO: '{processo.Nome}' (ID: {id}) - Adicionado à fila de prontos");
                 Console.WriteLine($"Processo com ID {id} adicionado novamente à fila de prontos.");
             }
             catch (Exception ex)
@@ -390,11 +411,13 @@ namespace Sistema_Operacional
 
                 if (sucesso)
                 {
+                    Logger.Registrar($"THREAD ADICIONADA: Processo '{processo.Nome}' (ID: {processoId}) - {paginasAdicionais} páginas ({memoriaThread}MB)");
                     Console.WriteLine($"Thread alocada com sucesso! {paginasAdicionais} páginas alocadas.");
                     GerenciadorMemoria.MostrarStatusMemoria();
                 }
                 else
                 {
+                    Logger.Registrar($"ERRO: Falha ao criar processo '{processoId}' - Adição de thread falhou");
                     Console.WriteLine("Falha ao criar thread. Revertendo alocação de memória...");
                     processo.TabelaDePaginas.LiberarPaginasEspecificas(paginasLogicas);
                     GerenciadorMemoria.LiberarPaginas(framesAlocados);
@@ -456,6 +479,8 @@ namespace Sistema_Operacional
                 {
                     List<int> framesLiberados = processo.TabelaDePaginas.LiberarPaginasEspecificas(thread.PaginasLogicasAlocadas);
                     GerenciadorMemoria.LiberarPaginas(framesLiberados);
+                    
+                    Logger.Registrar($"THREAD FINALIZADA: Processo '{processo.Nome}' (ID: {processoId}), Thread ID: {threadId} - {framesLiberados.Count} páginas liberadas");
                     Console.WriteLine($"Memória da thread liberada: {framesLiberados.Count} páginas.");
                     GerenciadorMemoria.MostrarStatusMemoria();
                 }

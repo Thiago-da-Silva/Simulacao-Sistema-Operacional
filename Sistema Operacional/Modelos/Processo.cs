@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Sistema_Operacional.Enums;
 using Sistema_Operacional.Memoria;
+using Sistema_Operacional.Utilidades;
 
 namespace Sistema_Operacional.Modelos
 {
@@ -46,7 +47,7 @@ namespace Sistema_Operacional.Modelos
             Id = id;
             Prioridade = prioridade;
             TempoChegada = DateTime.Now;
-            tempoDeExecucaoTotal = new Random().Next(500, 2001);
+            tempoDeExecucaoTotal = AleatorioSistema.Next(500, 2001);
             ContextoCPU = new RegistradoresContexto();
             TabelaArquivosAbertos = new List<string>();
             TabelaDePaginas = new TabelaPaginas(this.Id);
@@ -106,9 +107,6 @@ namespace Sistema_Operacional.Modelos
                     Console.WriteLine($"Thread com ID {id} não encontrada no processo {this.Nome} (ID: {this.Id}).");
                     return null;
                 }
-
-                // A memória será liberada pelo SistemaOperacional
-                // this.MemoriaUtilizada -= thread.MemoriaUtilizada; // REMOVIDO
 
                 thread.Estado = Enums.Estados.Finalizado;
                 this.Threads.Remove(thread);
