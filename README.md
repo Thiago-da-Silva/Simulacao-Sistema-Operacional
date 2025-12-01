@@ -1,129 +1,108 @@
-# 🖥️ Simulador de Sistema Operacional  
+# 🖥️ Simulador de Sistema Operacional
 
-## 📄 Relatório da Primeira Entrega  
-**Integrantes do Grupo:**  
-Henrique Akio Kuroda RA: 112886  
-Thiago da Silva RA: 113483  
-Rafael de Camargo RA: 114119  
+## 📖 Visão Geral
+O Simulador é uma ferramenta de simulação de alto nível desenvolvida em C# (.NET) que emula os componentes centrais de um sistema operacional moderno. O projeto foca na visualização e compreensão de algoritmos de escalonamento de CPU, gerenciamento de memória via paginação e o ciclo de vida de processos e threads.
 
----
-
-## ✅ 1. Funcionalidades Implementadas  
-
-Nesta primeira fase do projeto, foi desenvolvida a **estrutura central do simulador de Sistema Operacional**, com foco no gerenciamento de **processos**, **threads** e na implementação de um escalonador **FCFS**.  
-
-As seguintes funcionalidades foram concluídas:  
-
-### 🔹 Gerenciamento de Processos  
-- Criação de processos com **nome** e **ID únicos**.  
-- Manipulação de estados básicos: `Criado`, `Pronto`, `Executando`, `Bloqueado`, `Finalizado`.  
-- Pausa (bloqueio) de processos em execução ou na fila.  
-- Retomada de processos, reinserindo-os na fila de prontos.  
-- Finalização de processos com liberação de memória e CPU.  
-
-### 🔹 Gerenciamento de Threads  
-- Adição de **threads** a um processo existente, com **alocação de memória** específica.  
-- Pausa e retomada de threads individuais.  
-- Finalização de threads com liberação da memória utilizada.  
-
-### 🔹 Escalonador de CPU e Gerenciamento de Memória  
-- Implementação do algoritmo **First-Come, First-Served (FCFS)** para gerenciamento da fila de prontos.  
-- Modelo simplificado de gerenciamento de memória:  
-  - Controle da memória total do sistema.  
-  - Bloqueio de criação de novas threads quando não há espaço disponível.  
-
-### 🔹 Interface e Demonstração  
-- Operação via **menu interativo em linha de comando**.  
-- Rotina de **demonstração automática (Opção 16)** que executa um fluxo de operações para validar as funcionalidades principais.  
+O sistema opera via console interativo, permitindo configuração granular de parâmetros de hardware simulado (como tamanho de página e quantum) e oferece logs detalhados para análise de métricas.
 
 ---
 
-## 📊 2. Percentual de Conclusão do Projeto  
+## 🚀 Funcionalidades Principais
 
-Considerando o escopo definido na especificação (múltiplos algoritmos de escalonamento, gerenciamento de memória com paginação/segmentação, simulação de E/S, sistema de arquivos e coleta de métricas), o projeto encontra-se em aproximadamente **40% de conclusão**.  
+### 1. Gerenciamento de Processos e Threads
+O simulador implementa uma arquitetura robusta de PCB (Process Control Block) e TCB (Thread Control Block):
+- **Multithreading:** Suporte a múltiplas threads por processo, compartilhando o espaço de endereçamento do pai.
+- **Contexto de Hardware:** Simulação de registradores de propósito geral (`AX`, `BX`, `CX`, `DX`) e `Program Counter` (PC) por processo.
+- **Pilha Lógica:** Cada thread possui sua própria pilha de execução simulada.
+- **Ciclo de Vida Completo:** Transições de estado geridas automaticamente (`Criado` → `Pronto` → `Executando` → `Bloqueado` → `Finalizado`).
 
-A **base estrutural** já foi criada, mas os módulos mais complexos (memória avançada, E/S, arquivos) ainda não foram iniciados.  
+### 2. Algoritmos de Escalonamento
+O núcleo do sistema permite a injeção de dependência de diferentes estratégias de escalonamento (`IEscalonador`):
+- **FCFS (First-Come, First-Served):** Execução não-preemptiva baseada na ordem de chegada.
+- **Round Robin:** Execução preemptiva com **Quantum** configurável.
+- **Prioridades:** Escalonamento não-preemptivo com reordenação dinâmica da fila de prontos.
+- **Troca de Contexto:** Simulação realista de *overhead* (tempo de sobrecarga) ao alternar entre processos.
 
----
+### 3. Gerenciamento de Memória (Paginação)
+Implementação de um MMU (Memory Management Unit) simulado:
+- **Paginação:** Divisão da memória física em *Frames* (Molduras) e memória lógica em *Páginas*.
+- **TLB (Translation Lookaside Buffer):** Simulação de cache de endereçamento para otimização de tradução, com métricas de *Hits* e *Misses*.
+- **Tabela de Páginas:** Mapeamento individual por processo.
+- **Proteção de Memória:** Validação de limites e simulação de *Page Faults* ao acessar endereços inválidos.
+- **Alocação Dinâmica:** Algoritmo *First-Fit* para busca de quadros livres.
 
-## ⚠️ 3. Problemas e Limitações das Partes Entregues  
-
-As funcionalidades implementadas operam corretamente dentro de seu escopo, mas apresentam limitações que precisam ser resolvidas:  
-
-- **Gerenciamento de Memória Simplista:**  
-  O modelo atual é básico, apenas controla a memória total e não implementa paginação ou segmentação.  
-
-- **Escalonador Fixo:**  
-  Atualmente apenas o algoritmo **FCFS** está implementado. Será necessário adicionar suporte a **Round Robin** e **Prioridades**.  
-
-- **Falta de Simulação de Troca de Contexto:**  
-  A transição entre processos ocorre de forma instantânea, sem simulação de **overhead**.  
-
-- **PCB/TCB Incompletos:**  
-  As classes `Processo` e `Thread` ainda não possuem todos os campos de um PCB/TCB real (registradores, contador de programa, pilha lógica etc.).  
-
----
-
-## 🚀 Próximos Passos  
-
-- Implementar **algoritmos adicionais de escalonamento** (Round Robin, Prioridades).  
-- Aprimorar o **gerenciamento de memória** com paginação e segmentação.  
-- Criar a **simulação de E/S** e de **troca de contexto** com overhead.  
-- Completar as estruturas de **PCB/TCB**.  
+### 4. Métricas e Logs
+- **Estatísticas Finais:** Cálculo automático de *Throughput*, *Turnaround Time*, Tempo de Espera e Taxa de Utilização da CPU/Memória.
 
 ---
 
+## 🛠️ Arquitetura do Projeto
+
+A solução segue os princípios de Orientação a Objetos e SOLID:
+
+* **Kernel (`SistemaOperacional`):** Atua como a fachada controladora, orquestrando chamadas entre memória, CPU e processos.
+* **Camada de Modelo (`Modelos`):** Define as estruturas de dados (`Processo`, `Thread`, `Registradores`).
+* **Camada de Memória (`Memoria`):** Encapsula a lógica de hardware físico (`GerenciadorMemoria`) e lógico (`TabelaPaginas`, `TLB`).
+* **Camada de Escalonamento (`Escalonamento`):** Implementa a estratégia de seleção de processos através da interface `IEscalonador`.
+
+---
+
+## ⚙️ Como Executar
+
+### Pré-requisitos
+* .NET SDK 7.0 ou superior.
+
+### Instalação e Execução
+1. Clone o repositório:
+   ```bash
+   git clone [https://github.com/seu-usuario/simulacao-so.git](https://github.com/seu-usuario/simulacao-so.git)
 ## 📝 Diagrama de Classes  
 
 ```mermaid
 classDiagram
+    %% Classes Principais
     class Program {
-        +Main(args: string[])
+        +Main()
         +MostrarMenu()
         +ExecutarDemo()
     }
 
     class SistemaOperacional {
-        -totalMemoria: int
-        -cpuEmUso: bool
-        -processoEmExecucaoId: int
-        -processos: List<Processo>
-        -escalonador: Escalonador
-        +CriarProcesso(nome: string): Processo
+        -GerenciadorMemoria memoria
+        -IEscalonador escalonador
+        -List~Processo~ processos
+        -int tempoSobrecarga
+        +CriarProcesso()
         +ExecutarProximoProcesso()
-        +FinalizarProcesso(id: int)
-        +PausarProcesso(id: int)
-        +RetomarProcesso(id: int)
-        +AdicionarThread(idProcesso: int, memoria: float): bool
-        +ListarProcessos(): List<Processo>
+        +SimularAcessoMemoria()
+        +AdicionarThreadAoProcesso()
     }
 
-    class Escalonador {
-        -filaProntos: Queue<Processo>
-        +AdicionarProcesso(processo: Processo)
-        +ObterProximoProcesso(): Processo
-        +RemoverProcesso(id: int): bool
-    }
-
+    %% Gerenciamento de Processos
     class Processo {
-        +nome: string
-        +id: int
-        +prioridade: int
-        +estado: Estados
-        +threads: List<Thread>
-        +memoriaUtilizada: float
-        +tempoChegada: DateTime
-        +AdicionarThread(memoria: float): bool
-        +FinalizarThread(id: int)
+        +int Id
+        +string Nome
+        +Estados Estado
+        +RegistradoresContexto ContextoCPU
+        +TabelaPaginas TabelaDePaginas
+        +List~Thread~ Threads
+        +AdicionarThread()
+        +CalcularMemoriaTotal()
     }
 
     class Thread {
-        +id: int
-        +estado: Estados
-        +memoriaUtilizada: float
-        +processoPaiId: int
+        +int Id
+        +float MemoriaUtilizada
+        +Stack~string~ PilhaLogica
+        +List~int~ PaginasLogicasAlocadas
         +Pausar()
         +Retomar()
+    }
+
+    class RegistradoresContexto {
+        +int AX
+        +int BX
+        +int PC
     }
 
     class Estados {
@@ -135,10 +114,85 @@ classDiagram
         Finalizado
     }
 
-    Program ..> SistemaOperacional : usa
-    SistemaOperacional o-- Escalonador : possui
-    SistemaOperacional o-- "*" Processo : gerencia
-    Escalonador --> Processo : escalona
-    Processo *-- "*" Thread : contém
-    Processo ..> Estados
-    Thread ..> Estados
+    %% Escalonamento
+    class IEscalonador {
+        <<interface>>
+        +AdicionarProcesso()
+        +ObterProximoProcesso()
+        +RemoverProcessoDaFila()
+    }
+
+    class EscalonadorFCFS {
+        -Queue~Processo~ FilaFCFS
+    }
+
+    class EscalonadorRoundRobin {
+        -Queue~Processo~ FilaDeProntos
+        +int Quantum
+    }
+
+    class EscalonadorPrioridades {
+        -List~Processo~ FilaDeProntos
+    }
+
+    %% Gerenciamento de Memória
+    class GerenciadorMemoria {
+        -FrameInfo[] MapaDeMolduras
+        +int TamanhoPagina
+        +AlocarPaginas()
+        +LiberarPaginas()
+    }
+
+    class FrameInfo {
+        +bool Ocupado
+        +int ProcessoId
+        +Alocar()
+    }
+
+    class TabelaPaginas {
+        -Dictionary~int,int~ Mapeamento
+        -TLB tlb
+        +TraduzirEndereco()
+        +RegistrarAlocacao()
+    }
+
+    class TLB {
+        -Dictionary~int,int~ Cache
+        +int TotalHits
+        +int TotalMisses
+        +TentarObter()
+    }
+
+    %% Utilitários
+    class Logger {
+        +Registrar()
+        +Ler()
+    }
+
+    class AleatorioSistema {
+        +Next()
+        +Inicializar()
+    }
+
+    %% Relacionamentos
+    Program ..> SistemaOperacional : Inicializa
+    SistemaOperacional --> GerenciadorMemoria : Possui
+    SistemaOperacional --> IEscalonador : Usa
+    SistemaOperacional "1" *-- "*" Processo : Gerencia
+    
+    Processo *-- RegistradoresContexto : Possui PCB
+    Processo *-- TabelaPaginas : Possui
+    Processo "1" *-- "*" Thread : Contém
+    
+    Thread ..> Estados : Usa
+    Processo ..> Estados : Usa
+    
+    IEscalonador <|.. EscalonadorFCFS : Implementa
+    IEscalonador <|.. EscalonadorRoundRobin : Implementa
+    IEscalonador <|.. EscalonadorPrioridades : Implementa
+    
+    GerenciadorMemoria *-- FrameInfo : Mapeia Frames
+    TabelaPaginas *-- TLB : Usa Cache
+    
+    SistemaOperacional ..> Logger : Registra Logs
+    SistemaOperacional ..> AleatorioSistema : Usa Random
