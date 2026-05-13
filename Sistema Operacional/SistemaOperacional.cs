@@ -3,6 +3,7 @@ using Sistema_Operacional.Modelos;
 using Sistema_Operacional.Memoria;
 using Sistema_Operacional.Enums;
 using Sistema_Operacional.Utilidades;
+using Sistema_Operacional.SistemaArquivos;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -25,6 +26,7 @@ namespace Sistema_Operacional
 
         private List<Processo> Processos = new List<Processo>();
         private GerenciadorMemoria GerenciadorMemoria { get; set; }
+        private GerenciadorArquivos GerenciadorArquivos { get; set; }
         private int TamanhoPagina { get; set; }
 
         private List<Processo> ProcessosFinalizados = new List<Processo>();
@@ -40,6 +42,7 @@ namespace Sistema_Operacional
 
             this.TamanhoPagina = tamanhoPagina;
             this.GerenciadorMemoria = new GerenciadorMemoria(totalMemoria, tamanhoPagina);
+            this.GerenciadorArquivos = new GerenciadorArquivos(512);
         }
 
         public void CriarProcesso(string nome, int priority = 5, float memoriaInicial = 10f)
@@ -102,7 +105,20 @@ namespace Sistema_Operacional
 
         public void MostrarEstatisticasMemoria()
         {
-            GerenciadorMemoria.MostrarEstatisticasGerais();
+            // Fragmentação interna: diferença entre memória alocada em páginas e memória real usada
+            float totalFragmentacaoMB = 0;
+            foreach (var p in Processos)
+            {
+                float memoriaReal = p.CalcularMemoriaTotal();
+                float memoriaAlocada = p.TabelaDePaginas.TotalPaginas() * TamanhoPagina;
+                if (memoriaAlocada > memoriaReal)
+                    totalFragmentacaoMB += memoriaAlocada - memoriaReal;
+            }
+            float percentFragmentacao = GerenciadorMemoria.MemoriaTotal > 0
+                ? (totalFragmentacaoMB / GerenciadorMemoria.MemoriaTotal) * 100
+                : 0;
+
+            GerenciadorMemoria.MostrarEstatisticasGerais(percentFragmentacao);
 
             Console.WriteLine("=== ESTATÍSTICAS POR PROCESSO ===");
             foreach (var processo in Processos.OrderBy(p => p.Id))
@@ -605,6 +621,180 @@ namespace Sistema_Operacional
         public int GetTempoSobrecarga()
         {
             return TempoSobrecargaTrocaContexto;
+        }
+
+        // ─── SISTEMA DE ARQUIVOS ─────────────────────────────────────────────────
+
+        public bool CriarArquivo(string nome, string conteudo, int processoId = -1)
+        {
+            bool resultado = GerenciadorArquivos.CriarArquivo(nome, GerenciadorArquivos.DiretorioRaiz, conteudo);
+            if (resultado && processoId > 0)
+            {
+                var processo = Processos.FirstOrDefault(p => p.Id == processoId);
+                if (processo != null && !processo.TabelaArquivosAbertos.Contains(nome))
+                {
+                    processo.TabelaArquivosAbertos.Add(nome);
+                    Logger.Registrar($"ARQUIVO ABERTO: '{nome}' pelo processo '{processo.Nome}' (ID: {processoId})");
+                }
+            }
+            return resultado;
+        }
+
+        public bool CriarDiretorio(string nome)
+        {
+            return GerenciadorArquivos.CriarDiretorio(nome, GerenciadorArquivos.DiretorioRaiz);
+        }
+
+        public string LerArquivo(string nome, int processoId = -1)
+        {
+            string conteudo = GerenciadorArquivos.LerArquivo(nome, GerenciadorArquivos.DiretorioRaiz);
+            if (conteudo != null && processoId > 0)
+            {
+                var processo = Processos.FirstOrDefault(p => p.Id == processoId);
+                if (processo != null && !processo.TabelaArquivosAbertos.Contains(nome))
+                {
+                    processo.TabelaArquivosAbertos.Add(nome);
+                    Logger.Registrar($"ARQUIVO ABERTO: '{nome}' pelo processo '{processo.Nome}' (ID: {processoId})");
+                }
+            }
+            return conteudo;
+        }
+
+        public bool EscreverArquivo(string nome, string novoConteudo)
+        {
+            return GerenciadorArquivos.EscreverArquivo(nome, GerenciadorArquivos.DiretorioRaiz, novoConteudo);
+        }
+
+        public bool DeletarArquivo(string nome)
+        {
+            // Remove da tabela de arquivos abertos de todos os processos
+            foreach (var p in Processos)
+                p.TabelaArquivosAbertos.Remove(nome);
+
+            return GerenciadorArquivos.DeletarArquivo(nome, GerenciadorArquivos.DiretorioRaiz);
+        }
+
+        public void ListarDiretorioRaiz()
+        {
+            GerenciadorArquivos.ListarDiretorio(GerenciadorArquivos.DiretorioRaiz);
+        }
+
+        public void MostrarStatusDisco()
+        {
+            GerenciadorArquivos.MostrarStatusDisco();
+        }
+
+        public Arquivo GetDiretorioRaiz() => GerenciadorArquivos.DiretorioRaiz;
+
+        // ─── SUSPENSÃO DE PROCESSOS (Estados ProntoSuspenso / EsperaSuspensa) ───
+
+        public void SuspenderProcesso(int id)
+        {
+            try
+            {
+                var processo = Processos.FirstOrDefault(p => p.Id == id);
+                if (processo == null)
+                {
+                    Console.WriteLine($"Processo com ID {id} não encontrado.");
+                    return;
+                }
+
+                if (processo.Estado == Estados.ProntoSuspenso || processo.Estado == Estados.EsperaSuspensa)
+                {
+                    Console.WriteLine($"Processo '{processo.Nome}' (ID: {id}) já está suspenso.");
+                    return;
+                }
+
+                if (processo.Estado == Estados.Finalizado)
+                {
+                    Console.WriteLine($"Processo '{processo.Nome}' (ID: {id}) já foi finalizado.");
+                    return;
+                }
+
+                // Determina o estado suspenso: se bloqueado → EsperaSuspensa, caso contrário → ProntoSuspenso
+                Estados novoEstado = processo.Estado == Estados.Bloqueado
+                    ? Estados.EsperaSuspensa
+                    : Estados.ProntoSuspenso;
+
+                // Salva quantas páginas estavam alocadas para poder restaurar depois
+                processo.PaginasAntesDaSuspensao = processo.TabelaDePaginas.TotalPaginas();
+
+                // Libera os frames físicos e limpa o mapeamento (processo vai para "disco")
+                List<int> frames = processo.TabelaDePaginas.ObterTodosFrames();
+                processo.TabelaDePaginas.LimparMapeamento();
+                GerenciadorMemoria.LiberarPaginas(frames);
+
+                // Remove da fila de prontos se estava pronto/executando
+                if (novoEstado == Estados.ProntoSuspenso)
+                    Escalonador.RemoverProcessoDaFila(id);
+
+                if (ProcessoEmExecucaoId == id)
+                {
+                    CpuEmUso = false;
+                    ProcessoEmExecucaoId = 0;
+                }
+
+                processo.Estado = novoEstado;
+                Logger.Registrar($"PROCESSO SUSPENSO: '{processo.Nome}' (ID: {id}) → {novoEstado} | {frames.Count} páginas liberadas para memória");
+                Console.WriteLine($"Processo '{processo.Nome}' (ID: {id}) suspenso ({novoEstado}).");
+                Console.WriteLine($"{frames.Count} página(s) devolvida(s) à memória física (processo em disco virtual).");
+                MostrarStatusMemoria();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erro ao suspender processo: {ex.Message}");
+            }
+        }
+
+        public void ReativarProcessoSuspenso(int id)
+        {
+            try
+            {
+                var processo = Processos.FirstOrDefault(p => p.Id == id);
+                if (processo == null)
+                {
+                    Console.WriteLine($"Processo com ID {id} não encontrado.");
+                    return;
+                }
+
+                if (processo.Estado != Estados.ProntoSuspenso && processo.Estado != Estados.EsperaSuspensa)
+                {
+                    Console.WriteLine($"Processo '{processo.Nome}' (ID: {id}) não está suspenso.");
+                    return;
+                }
+
+                int paginasNecessarias = processo.PaginasAntesDaSuspensao;
+                if (paginasNecessarias <= 0)
+                    paginasNecessarias = Math.Max(1, (int)Math.Ceiling(processo.CalcularMemoriaTotal() / (float)TamanhoPagina));
+
+                List<int> novosFrames = GerenciadorMemoria.AlocarPaginas(processo.Id, paginasNecessarias);
+                if (novosFrames == null)
+                {
+                    Console.WriteLine($"ERRO: Memória insuficiente para reativar '{processo.Nome}'. Necessário: {paginasNecessarias} página(s).");
+                    Console.WriteLine("Sugestão: suspenda outro processo para liberar memória.");
+                    MostrarStatusMemoria();
+                    return;
+                }
+
+                processo.TabelaDePaginas.RegistrarAlocacao(novosFrames);
+
+                // Restaura estado: EsperaSuspensa → Bloqueado, ProntoSuspenso → Pronto
+                bool eraEsperaSuspensa = processo.Estado == Estados.EsperaSuspensa;
+                processo.Estado = eraEsperaSuspensa ? Estados.Bloqueado : Estados.Pronto;
+                processo.PaginasAntesDaSuspensao = 0;
+
+                if (processo.Estado == Estados.Pronto)
+                    Escalonador.AdicionarProcesso(processo);
+
+                Logger.Registrar($"PROCESSO REATIVADO: '{processo.Nome}' (ID: {id}) | {novosFrames.Count} páginas realocadas → {processo.Estado}");
+                Console.WriteLine($"Processo '{processo.Nome}' (ID: {id}) reativado. {novosFrames.Count} página(s) realocada(s).");
+                Console.WriteLine($"Estado: {processo.Estado}{(processo.Estado == Estados.Bloqueado ? " (ainda bloqueado — use Retomar para colocar na fila)" : "")}");
+                MostrarStatusMemoria();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Erro ao reativar processo: {ex.Message}");
+            }
         }
     }
 }

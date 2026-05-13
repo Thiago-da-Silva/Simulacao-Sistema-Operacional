@@ -158,6 +158,33 @@ public class Program
                 case "19":
                     VisualizarLog();
                     break;
+                case "20":
+                    CriarArquivo(sistema);
+                    break;
+                case "21":
+                    LerArquivo(sistema);
+                    break;
+                case "22":
+                    EscreverArquivo(sistema);
+                    break;
+                case "23":
+                    DeletarArquivo(sistema);
+                    break;
+                case "24":
+                    CriarDiretorio(sistema);
+                    break;
+                case "25":
+                    sistema.ListarDiretorioRaiz();
+                    break;
+                case "26":
+                    sistema.MostrarStatusDisco();
+                    break;
+                case "27":
+                    SuspenderProcesso(sistema);
+                    break;
+                case "28":
+                    ReativarProcessoSuspenso(sistema);
+                    break;
                 case "99":
                     Console.Clear();
                     Console.WriteLine("Tela limpa!");
@@ -211,6 +238,19 @@ public class Program
         Console.WriteLine("║ 17 - Estatísticas de Memória (TLB)           ║");
         Console.WriteLine("║ 18 - Simular Acesso à Memória                ║");
         Console.WriteLine("║ 19 - Visualizar Log da Simulação             ║");
+        Console.WriteLine("║                                              ║");
+        Console.WriteLine("║ SISTEMA DE ARQUIVOS                          ║");
+        Console.WriteLine("║ 20 - Criar Arquivo                           ║");
+        Console.WriteLine("║ 21 - Ler Arquivo                             ║");
+        Console.WriteLine("║ 22 - Escrever no Arquivo                     ║");
+        Console.WriteLine("║ 23 - Deletar Arquivo/Diretório               ║");
+        Console.WriteLine("║ 24 - Criar Diretório                         ║");
+        Console.WriteLine("║ 25 - Listar Diretório Raiz                   ║");
+        Console.WriteLine("║ 26 - Status do Disco Virtual                 ║");
+        Console.WriteLine("║                                              ║");
+        Console.WriteLine("║ SUSPENSÃO DE PROCESSOS                       ║");
+        Console.WriteLine("║ 27 - Suspender Processo (→ disco)            ║");
+        Console.WriteLine("║ 28 - Reativar Processo Suspenso              ║");
         Console.WriteLine("║                                              ║");
         Console.WriteLine("║ 99 - Limpar Tela                             ║");
         Console.WriteLine("║ 0  - Sair                                    ║");
@@ -583,6 +623,140 @@ public class Program
         Console.WriteLine("=== VISUALIZAR LOG DA SIMULAÇÃO ===");
         Logger.Ler();
         Console.WriteLine();
+    }
+
+    static void CriarArquivo(SistemaOperacional sistema)
+    {
+        Console.WriteLine("=== CRIAR ARQUIVO ===");
+        sistema.ListarDiretorioRaiz();
+
+        Console.Write("Nome do arquivo (ex: dados.txt): ");
+        string nome = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(nome))
+        {
+            Console.WriteLine("Nome inválido!");
+            return;
+        }
+
+        Console.Write("Conteúdo do arquivo: ");
+        string conteudo = Console.ReadLine() ?? string.Empty;
+
+        Console.Write("ID do processo proprietário (0 = nenhum): ");
+        int.TryParse(Console.ReadLine(), out int processoId);
+
+        sistema.CriarArquivo(nome, conteudo, processoId);
+    }
+
+    static void LerArquivo(SistemaOperacional sistema)
+    {
+        Console.WriteLine("=== LER ARQUIVO ===");
+        sistema.ListarDiretorioRaiz();
+
+        Console.Write("Nome do arquivo a ler: ");
+        string nome = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(nome))
+        {
+            Console.WriteLine("Nome inválido!");
+            return;
+        }
+
+        Console.Write("ID do processo leitor (0 = nenhum): ");
+        int.TryParse(Console.ReadLine(), out int processoId);
+
+        string conteudo = sistema.LerArquivo(nome, processoId);
+        if (conteudo != null)
+        {
+            Console.WriteLine($"\n--- Conteúdo de '{nome}' ---");
+            Console.WriteLine(conteudo.Length == 0 ? "(arquivo vazio)" : conteudo);
+            Console.WriteLine("----------------------------");
+        }
+    }
+
+    static void EscreverArquivo(SistemaOperacional sistema)
+    {
+        Console.WriteLine("=== ESCREVER NO ARQUIVO ===");
+        sistema.ListarDiretorioRaiz();
+
+        Console.Write("Nome do arquivo a escrever: ");
+        string nome = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(nome))
+        {
+            Console.WriteLine("Nome inválido!");
+            return;
+        }
+
+        Console.Write("Novo conteúdo (sobrescreve o anterior): ");
+        string conteudo = Console.ReadLine() ?? string.Empty;
+
+        sistema.EscreverArquivo(nome, conteudo);
+    }
+
+    static void DeletarArquivo(SistemaOperacional sistema)
+    {
+        Console.WriteLine("=== DELETAR ARQUIVO / DIRETÓRIO ===");
+        sistema.ListarDiretorioRaiz();
+
+        Console.Write("Nome do arquivo ou diretório a deletar: ");
+        string nome = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(nome))
+        {
+            Console.WriteLine("Nome inválido!");
+            return;
+        }
+
+        sistema.DeletarArquivo(nome);
+    }
+
+    static void CriarDiretorio(SistemaOperacional sistema)
+    {
+        Console.WriteLine("=== CRIAR DIRETÓRIO ===");
+
+        Console.Write("Nome do diretório: ");
+        string nome = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(nome))
+        {
+            Console.WriteLine("Nome inválido!");
+            return;
+        }
+
+        sistema.CriarDiretorio(nome);
+    }
+
+    static void SuspenderProcesso(SistemaOperacional sistema)
+    {
+        Console.WriteLine("=== SUSPENDER PROCESSO ===");
+        Console.WriteLine("O processo é removido da memória física e vai para o disco virtual.");
+        Console.WriteLine("Estados: Pronto/Executando → ProntoSuspenso | Bloqueado → EsperaSuspensa");
+        Console.WriteLine();
+        sistema.ListarProcessos();
+
+        Console.Write("ID do processo a suspender: ");
+        if (int.TryParse(Console.ReadLine(), out int id))
+        {
+            sistema.SuspenderProcesso(id);
+        }
+        else
+        {
+            Console.WriteLine("ID inválido!");
+        }
+    }
+
+    static void ReativarProcessoSuspenso(SistemaOperacional sistema)
+    {
+        Console.WriteLine("=== REATIVAR PROCESSO SUSPENSO ===");
+        Console.WriteLine("O processo volta do disco para a memória física e entra na fila de prontos.");
+        Console.WriteLine();
+        sistema.ListarProcessos();
+
+        Console.Write("ID do processo a reativar: ");
+        if (int.TryParse(Console.ReadLine(), out int id))
+        {
+            sistema.ReativarProcessoSuspenso(id);
+        }
+        else
+        {
+            Console.WriteLine("ID inválido!");
+        }
     }
 
     static void MostrarMetricasFinais(SistemaOperacional sistema)

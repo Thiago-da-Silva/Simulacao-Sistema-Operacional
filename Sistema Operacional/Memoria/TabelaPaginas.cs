@@ -89,9 +89,9 @@ namespace Sistema_Operacional.Memoria
 
         public void MostrarEstatisticas()
         {
-            Console.WriteLine($"=== ESTATÕSTICAS DE MEM”RIA - Processo {ProcessoId} ===");
-            Console.WriteLine($"Total de p·ginas alocadas: {TotalPaginas()}");
-            Console.WriteLine($"Total de acessos ‡ memÛria: {TotalAcessos}");
+            Console.WriteLine($"=== ESTATÔøΩSTICAS DE MEMÔøΩRIA - Processo {ProcessoId} ===");
+            Console.WriteLine($"Total de pÔøΩginas alocadas: {TotalPaginas()}");
+            Console.WriteLine($"Total de acessos ÔøΩ memÔøΩria: {TotalAcessos}");
             Console.WriteLine($"Total de Page Faults: {TotalPageFaults}");
             
             if (TotalAcessos > 0)
@@ -102,6 +102,14 @@ namespace Sistema_Operacional.Memoria
 
             Console.WriteLine();
             TLB.MostrarEstatisticas();
+        }
+
+        // Remove todo o mapeamento l√≥gico‚Üíf√≠sico (usado ao suspender processo para disco)
+        public void LimparMapeamento()
+        {
+            foreach (var pagina in Mapeamento.Keys.ToList())
+                TLB.Remover(pagina);
+            Mapeamento.Clear();
         }
 
         public TLB GetTLB()
